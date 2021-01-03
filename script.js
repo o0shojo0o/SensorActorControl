@@ -7,7 +7,7 @@
 //////////////////////////
 
 // Define actors
-const actors = [
+const Actors = [
     // eg. {name: '', id: '', on: '', level: '', ct: '', color: '', posMin: 0, posMax: 0},
     //Flur
     {name: 'FL.Licht.Decke.Hinten', id: 'zigbee.0.0017880102a096e5'},
@@ -39,7 +39,7 @@ const actors = [
 ];
  
 // Define sensors
-const sensors = [
+const Sensors = [
     // eg. {name: '', id: ''},
     //Flur
     {name: 'FL.Licht.Decke.Hinten', id: ''}, // Todo
@@ -61,7 +61,7 @@ const sensors = [
 ];
  
 // Definde events
-const events = [
+const Events = [
     // eg.  {sensor: '', event: '', actors: ['',''], action: ''}, current available [ toggle, on, off, autoDim ]
     // Küche
     {sensor: 'KU.Sensor.Taster', event: 'right_click', actors: ['KU.Licht.Arbeitsplatte.Links'], action: 'toggle'},
@@ -85,49 +85,50 @@ const events = [
 const cache = [];
 
 // Register events
-for (const key in events) {
-    const sensor = sensors.find(x=>x.name == events[key].sensor);
-    const triggerdp = sensor.id + '.' + events[key].event;    
-    const actors = events[key].actors;
+for (const key in Events) {
+    const sensor = Sensors.find(x=>x.name == Events[key].sensor);
+    const triggerDp = sensor.id + '.' + Events[key].event;    
+    const actors = Events[key].actors;
+    const action = Events[key].action;
     
     // Toogle event register
-    if (events[key].action == 'toggle') {
-        on ({id: triggerdp, val: true}, (obj)=> {
+    if (action == 'toggle') {
+        on ({id: triggerDp, val: true}, (obj)=> {
             toggle(actors);
         });
     }
    
     // On event register
-    else if (events[key].action == 'on') {
-        on ({id: triggerdp, val: true}, (obj)=> {
+    else if (action == 'on') {
+        on ({id: triggerDp, val: true}, (obj)=> {
             setOnOff(actors, true);
         });
     } 
     
     // Off event register
-    else if (events[key].action == 'off') {
-        on ({id: triggerdp, val: true}, (obj)=> { 
+    else if (action == 'off') {
+        on ({id: triggerDp, val: true}, (obj)=> { 
             setOnOff(actors, false);
         });
     }
 
     // AutoDim event register
-    else if (events[key].action == 'autoDim') {
-        on ({id: triggerdp}, (obj)=> { 
+    else if (action == 'autoDim') {
+        on ({id: triggerDp}, (obj)=> { 
             autoDim(obj, actors);
         });
     }
 
     // Open (Blind) event register
-    else if (events[key].action == 'open') {
-        on ({id: triggerdp, val: true}, (obj)=> { 
+    else if (action == 'open') {
+        on ({id: triggerDp, val: true}, (obj)=> { 
             openClose(actors, true);
         });
     }
 
     // Close (Blind) event register
-    else if (events[key].action == 'close') {
-        on ({id: triggerdp, val: true}, (obj)=> { 
+    else if (action == 'close') {
+        on ({id: triggerDp, val: true}, (obj)=> { 
             openClose(actors, false);
         });
     }
@@ -140,7 +141,7 @@ for (const key in events) {
 */
 function getDataPoint(actorName, control){    
     let dataPoint;
-    const actor = actors.find(x=>x.name == actorName)    
+    const actor = Actors.find(x=>x.name == actorName)    
     // Has an override been defined?
     if (actor[control] != undefined){
         dataPoint =  `${actor.id}.${actor[control]}`;        
@@ -266,15 +267,15 @@ function autoDim(obj, actors){
 }
 
 /**
-* @param {string[]} actorsNames
+* @param {string[]} actors
 * @param {boolean} openClose
 */
-function openClose(actorsNames, openClose){
-    for (const key in actorsNames) {        
-        const dataPoint = getDataPoint(actorsNames[key], 'pos'); 
+function openClose(actors, openClose){
+    for (const key in actors) {        
+        const dataPoint = getDataPoint(actors[key], 'pos'); 
         if  (dataPoint != undefined){    
             // Get actor
-            const actor = actors.find(x=>x.name == actorsNames[key]);
+            const actor = Actors.find(x=>x.name == actors[key]);
             let desiredPos;
             // Open
             if (openClose == true){
