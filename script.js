@@ -3,13 +3,12 @@
 // - Colortemp handling
 // - Color handling
 // - NightTime handling 
-// - Blinds handling
 //
 //////////////////////////
 
 // Define actors
 const actors = [
-    // eg. {name: '', id: '', on: '', level: '', ct: '', color: ''},
+    // eg. {name: '', id: '', on: '', level: '', ct: '', color: '', posMin: 0, posMax: 0},
     //Flur
     {name: 'FL.Licht.Decke.Hinten', id: 'zigbee.0.0017880102a096e5'},
     {name: 'FL.Licht.Decke.Vorne', id: 'zigbee.0.0017880102eebc0b'},
@@ -31,8 +30,12 @@ const actors = [
     {name: 'KZ.Licht.Decke', id: 'zigbee.0.842e14fffe1f08e7'},   
     // Schlafzimmer
     {name: 'SZ.Licht.Bett', id: 'zigbee.0.588e81fffefea724'},
+    {name: 'SZ.Blind.Links', id: 'zigbee.0.680ae2fffe974af1', posMin: 0, posMax: 90},
+    {name: 'SZ.Blind.Rechts', id: 'zigbee.0.680ae2fffe54a2ba', posMin: 0, posMax: 90},
     // Terrasse
     {name: 'TR.Licht.GardenPole', id: 'zigbee.0.7cb03eaa00a9572e'},   
+    // Büro
+    {name: 'BU.Blind', id: 'zigbee.0.680ae2fffeed55f6', posMin: 0, posMax: 97},
 ];
  
 // Define sensors
@@ -45,7 +48,7 @@ const sensors = [
     {name: 'KU.Sensor.Taster', id: 'zigbee.0.00158d00027bd7e1'},
     // Büro
     {name: 'BU.Sensor.Taster.Free', id: 'zigbee.0.00158d00027c1027'},
-    {name: 'BU.Sensor.Taster.OpenClose', id: 'zigbee.0.680ae2fffeaca6fa'}, // Todo
+    {name: 'BU.Sensor.Taster.OpenClose', id: 'zigbee.0.680ae2fffeaca6fa'},
     // Kinderzimmer
     {name: 'KZ.Sensor.Taster', id: 'zigbee.0.00158d00027c1ca4'},
     {name: 'KZ.Sensor.Taster.UP', id: 'zigbee.0.5c0272fffe3c2124'},
@@ -69,6 +72,12 @@ const events = [
     {sensor: 'KZ.Sensor.Taster', event: 'right_click', actors: ['KZ.Licht.Betthimmel'], action: 'toggle'},
     {sensor: 'KZ.Sensor.Taster.UP', event: 'state', actors: ['KZ.Licht.Decke'], action: 'toggle'},
     {sensor: 'KZ.Sensor.Taster.UP', event: 'up_button', actors: ['KZ.Licht.Decke'], action: 'autoDim'},
+    // Schlafzimmer
+    {sensor: 'SZ.Sensor.Taster.OpenClose', event: 'cover_open', actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: 'open'},
+    {sensor: 'SZ.Sensor.Taster.OpenClose', event: 'cover_close', actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: 'close'},
+    // Büro
+    {sensor: 'BU.Sensor.Taster.OpenClose', event: 'cover_open', actors: ['BU.Blind'], action: 'open'},
+    {sensor: 'BU.Sensor.Taster.OpenClose', event: 'cover_close', actors: ['BU.Blind'], action: 'close'},
 ];
 
 /////////////////////////////////////////////////// Logic ////////////////////////////////////////////////////////////////////
@@ -108,6 +117,20 @@ for (const key in events) {
             autoDim(obj, actors);
         });
     }
+
+    // Open (Blind) event register
+    else if (events[key].action == 'open') {
+        on ({id: triggerdp, val: true}, (obj)=> { 
+            openClose(actors, true);
+        });
+    }
+
+    // Close (Blind) event register
+    else if (events[key].action == 'close') {
+        on ({id: triggerdp, val: true}, (obj)=> { 
+            openClose(actors, false);
+        });
+    }
 }
 
 // Create datapoint string
@@ -140,6 +163,10 @@ function getDataPoint(actorName, control){
             else if (control == 'color'){
                 dataPoint = `${actor.id}.color`;
             }
+
+            else if (control == 'pos'){
+                dataPoint = `${actor.id}.position`;
+            }
         }
 
         // WLED Actor
@@ -150,9 +177,7 @@ function getDataPoint(actorName, control){
             else if (control == 'level'){
                 dataPoint = `${actor.id}.bri`;
             }
-            //else if (control == 'ct'){
-            //    dataPoint = `${actor.id}.colortemp`;
-            // }
+
             else if (control == 'color'){
                 dataPoint = `${actor.id}.seg.0.col.0_HEX`;
             }
@@ -227,7 +252,7 @@ function autoDim(obj, actors){
             for (const key in actors) {
                 const dataPoint = getDataPoint(actors[key], 'level'); 
                 if  (dataPoint != undefined){    
-                    setState(dataPoint, cache[cacheKey].currentBrightness)
+                    setState(dataPoint, Number(cache[cacheKey].currentBrightness));
                 }
             } 
         }, 500);
@@ -240,3 +265,34 @@ function autoDim(obj, actors){
     }
 }
 
+/**
+* @param {string[]} actorsNames
+* @param {boolean} openClose
+*/
+function openClose(actorsNames, openClose){
+    for (const key in actorsNames) {        
+        const dataPoint = getDataPoint(actorsNames[key], 'pos'); 
+        if  (dataPoint != undefined){    
+            // Get actor
+            const actor = actors.find(x=>x.name == actorsNames[key]);
+            let desiredPos;
+            // Open
+            if (openClose == true){
+                desiredPos = 100;
+                // Has an override been defined?
+                if (actor.posMax){
+                    desiredPos = actor.posMax;
+                }
+            }               
+            // Close
+            else{
+                desiredPos = 0;
+                // Has an override been defined?
+                if (actor.posMin){
+                    desiredPos = actor.posMin;
+                }               
+            }
+            setState(dataPoint, Number(desiredPos));
+        }
+    } 
+}
