@@ -1,6 +1,5 @@
 ////////// ToDo //////////
 //
-// - Brightness handling 
 // - Colortemp handling
 // - Color handling
 // - NightTime handling 
