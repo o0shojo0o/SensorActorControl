@@ -118,43 +118,44 @@ for (const key in events) {
 function getDataPoint(actorName, control){    
     let dataPoint;
     const actor = actors.find(x=>x.name == actorName)    
-    // Wurde ein override defineiert?
+    // Has an override been defined?
     if (actor[control] != undefined){
-        return `${actor.id}.${actor[control]}`;        
+        dataPoint =  `${actor.id}.${actor[control]}`;        
     }
+    else{
+        // Zigbee actor
+        if (actor.id.startsWith('zigbee')){
+            if (control == 'on'){
+                dataPoint =  `${actor.id}.state`;
+            }
 
-    // Zigbee actor
-    if (actor.id.startsWith('zigbee')){
-        if (control == 'on'){
-            dataPoint =  `${actor.id}.state`;
+            else if (control == 'level'){
+                dataPoint = `${actor.id}.brightness`;
+            }
+
+            else if (control == 'ct'){
+                dataPoint = `${actor.id}.colortemp`;
+            }
+
+            else if (control == 'color'){
+                dataPoint = `${actor.id}.color`;
+            }
         }
 
-        else if (control == 'level'){
-            dataPoint = `${actor.id}.brightness`;
-        }
-
-        else if (control == 'ct'){
-            dataPoint = `${actor.id}.colortemp`;
-        }
-
-        else if (control == 'color'){
-            dataPoint = `${actor.id}.color`;
-        }
-    }
-
-    // WLED Actor
-    else if (actor.id.startsWith('wled')){
-        if (control == 'on'){
-            dataPoint = `${actor.id}.on`;
-        }
-        else if (control == 'level'){
-            dataPoint = `${actor.id}.bri`;
-        }
-        //else if (control == 'ct'){
-        //    dataPoint = `${actor.id}.colortemp`;
-        // }
-        else if (control == 'color'){
-            dataPoint = `${actor.id}.seg.0.col.0_HEX`;
+        // WLED Actor
+        else if (actor.id.startsWith('wled')){
+            if (control == 'on'){
+                dataPoint = `${actor.id}.on`;
+            }
+            else if (control == 'level'){
+                dataPoint = `${actor.id}.bri`;
+            }
+            //else if (control == 'ct'){
+            //    dataPoint = `${actor.id}.colortemp`;
+            // }
+            else if (control == 'color'){
+                dataPoint = `${actor.id}.seg.0.col.0_HEX`;
+            }
         }
     }
 
