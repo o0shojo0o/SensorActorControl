@@ -60,7 +60,7 @@ const sensors = [
  
 // Definde events
 const events = [
-    // eg.  {sensor: '', event: '', actors: ['',''], action: ''},
+    // eg.  {sensor: '', event: '', actors: ['',''], action: ''}, current available [ toggle, on, off, autoDim ]
     // Küche
     {sensor: 'KU.Sensor.Taster', event: 'right_click', actors: ['KU.Licht.Arbeitsplatte.Links'], action: 'toggle'},
     {sensor: 'KU.Sensor.Taster', event: 'left_click', actors: ['KU.Licht.Arbeitsplatte.Rechts'], action: 'toggle'},
