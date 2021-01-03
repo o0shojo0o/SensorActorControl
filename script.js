@@ -1,7 +1,6 @@
 ////////// ToDo //////////
 //
-// - Brightness handling
-//  |- Auto brightness
+// - Brightness handling 
 // - Colortemp handling
 // - Color handling
 // - NightTime handling 
@@ -51,6 +50,7 @@ const sensors = [
     // Kinderzimmer
     {name: 'KZ.Sensor.Taster', id: 'zigbee.0.00158d00027c1ca4'},
     {name: 'KZ.Sensor.Taster.UP', id: 'zigbee.0.5c0272fffe3c2124'},
+    {name: 'KZ.Sensor.Fernbedienung', id: 'zigbee.0.ec1bbdfffea53484'},
     // Wohnzimmer
     {name: 'WZ.Sensor.Taster.Dimmer', id: 'zigbee.0.00178801080cf9f9'},
     // Schlafzimmer
@@ -60,17 +60,22 @@ const sensors = [
  
 // Definde events
 const events = [
-    // eg.  {sensor: '', event: '', actors: ['',''], action:''},
+    // eg.  {sensor: '', event: '', actors: ['',''], action: ''},
     // Küche
-    {sensor: 'KU.Sensor.Taster', event: 'right_click', actors: ['KU.Licht.Arbeitsplatte.Links'], action:'toggle'},
-    {sensor: 'KU.Sensor.Taster', event: 'left_click', actors: ['KU.Licht.Arbeitsplatte.Rechts'], action:'toggle'},
-    {sensor: 'KU.Sensor.Taster', event: 'both_click', actors: ['KU.Licht.Deckenleuchte'], action:'toggle'},
+    {sensor: 'KU.Sensor.Taster', event: 'right_click', actors: ['KU.Licht.Arbeitsplatte.Links'], action: 'toggle'},
+    {sensor: 'KU.Sensor.Taster', event: 'left_click', actors: ['KU.Licht.Arbeitsplatte.Rechts'], action: 'toggle'},
+    {sensor: 'KU.Sensor.Taster', event: 'both_click', actors: ['KU.Licht.Deckenleuchte'], action: 'toggle'},
     // Kinderzimmer
-    {sensor: 'KZ.Sensor.Taster', event: 'left_click', actors: ['KZ.Licht.Disco'], action:'toggle'},
-    {sensor: 'KZ.Sensor.Taster', event: 'right_click', actors: ['KZ.Licht.Betthimmel'], action:'toggle'},
-    {sensor: 'KZ.Sensor.Taster.UP', event: 'state', actors: ['KZ.Licht.Decke'], action:'toggle'},
+    {sensor: 'KZ.Sensor.Taster', event: 'left_click', actors: ['KZ.Licht.Disco'], action: 'toggle'},
+    {sensor: 'KZ.Sensor.Taster', event: 'right_click', actors: ['KZ.Licht.Betthimmel'], action: 'toggle'},
+    {sensor: 'KZ.Sensor.Taster.UP', event: 'state', actors: ['KZ.Licht.Decke'], action: 'toggle'},
+    {sensor: 'KZ.Sensor.Taster.UP', event: 'up_button', actors: ['KZ.Licht.Decke'], action: 'autoDim'},
 ];
- 
+
+/////////////////////////////////////////////////// Logic ////////////////////////////////////////////////////////////////////
+//
+const cache = [];
+
 // Register events
 for (const key in events) {
     const sensor = sensors.find(x=>x.name == events[key].sensor);
@@ -97,9 +102,20 @@ for (const key in events) {
             setOnOff(actors, false);
         });
     }
+
+    // AutoDim event register
+    else if (events[key].action == 'autoDim') {
+        on ({id: triggerdp}, (obj)=> { 
+            autoDim(obj, actors);
+        });
+    }
 }
 
 // Create datapoint string
+/**
+* @param {string} actorName
+* @param {string} control
+*/
 function getDataPoint(actorName, control){    
     let dataPoint;
     const actor = actors.find(x=>x.name == actorName)    
@@ -152,6 +168,10 @@ function getDataPoint(actorName, control){
 }
 
 // On or off function
+/**
+* @param {string[]} actors
+* @param {boolean} onOff
+*/
 function setOnOff(actors, onOff) { 
     for (const key in actors) {
         const dataPoint = getDataPoint(actors[key], 'on'); 
@@ -162,6 +182,9 @@ function setOnOff(actors, onOff) {
 }
  
 // Toggle function
+/**
+* @param {string[]} actors
+*/
 function toggle(actors) {   
     for (const key in actors) {
         const dataPoint = getDataPoint(actors[key], 'on'); 
@@ -169,4 +192,51 @@ function toggle(actors) {
             setState(dataPoint, !getState(dataPoint).val);
         }
     }
-};
+}
+
+/**
+* @param {iobJS.ChangedStateObject<any, any>} obj
+* @param {string[]} actors
+*/
+function autoDim(obj, actors){
+    const cacheKey = JSON.stringify(actors);
+    if (!cache[cacheKey]){
+        cache[cacheKey] = { dimInterval: undefined, upDimm: true, currentBrightness: Number(getState(actors[0]).val)};
+    }
+    
+    if (obj.state.val === true){
+        cache[cacheKey].dimInterval = setInterval(()=>{
+            if (cache[cacheKey].upDimming){
+                cache[cacheKey].currentBrightness = cache[cacheKey].currentBrightness + 10;               
+            }        
+            else{
+                cache[cacheKey].currentBrightness = cache[cacheKey].currentBrightness - 10;
+            }
+
+            if (cache[cacheKey].currentBrightness >= 100){
+                cache[cacheKey].currentBrightness = 100;
+                // Auto change dim direction 
+                //cache[cacheKey].upDimming = false;
+            }
+            else if (cache[cacheKey].currentBrightness <= 10){
+                cache[cacheKey].currentBrightness = 2;
+                // Auto change dim direction 
+                //cache[cacheKey].upDimming = true;
+            }   
+
+            for (const key in actors) {
+                const dataPoint = getDataPoint(actors[key], 'level'); 
+                if  (dataPoint != undefined){    
+                    setState(dataPoint, cache[cacheKey].currentBrightness)
+                }
+            } 
+        }, 500);
+    }    
+    else{
+        // On release stop dimming 
+        clearInterval(cache[cacheKey].dimInterval);
+        // On release change dim direction 
+        cache[cacheKey].upDimming = !cache[cacheKey].upDimming;
+    }
+}
+
