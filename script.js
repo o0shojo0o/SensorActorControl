@@ -60,7 +60,7 @@ const Sensors = [
     
 ];
  
-// Definde events
+// Define events
 const Events = [
     // eg.  {sensor: '', event: '', actors: ['',''], action: ''}, current available [ toggle, on, off, autoDim ]
     // Küche
