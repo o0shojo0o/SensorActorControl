@@ -74,8 +74,8 @@ const Events = [
     {sensor: 'KZ.Sensor.Taster.UP', events: ['up_button'], actors: ['KZ.Licht.Decke'], action: 'autoDim'},
     //{sensor: 'KZ.Sensor.Fernbedienung', events: ['on'], actors: ['KZ.Licht.Decke'], action: 'on'},
     //{sensor: 'KZ.Sensor.Fernbedienung', events: ['off'], actors: ['KZ.Licht.Decke'], action: 'off'},
-    //{sensor: 'KZ.Sensor.Fernbedienung', events: ['brightness_step_up'], actors: ['KZ.Licht.Decke'], action: 'dimUp'},
-    //{sensor: 'KZ.Sensor.Fernbedienung', events: ['brightness_step_down'], actors: ['KZ.Licht.Decke'], action: 'dimDown'},
+    {sensor: 'KZ.Sensor.Fernbedienung', events: ['brightness_step_up'], actors: ['WZ.Licht.StandLampe'], action: 'dimUp'},
+    {sensor: 'KZ.Sensor.Fernbedienung', events: ['brightness_step_down'], actors: ['WZ.Licht.StandLampe'], action: 'dimDown'},
     // Schlafzimmer
     {sensor: 'SZ.Sensor.Taster.OpenClose', events: ['cover_open'], actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: 'open'},
     {sensor: 'SZ.Sensor.Taster.OpenClose', events: ['cover_close'], actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: 'close'},
@@ -261,7 +261,7 @@ function autoDim(obj, actors){
     // Check if the cache is available, if not one will be created 
     const cacheKey = JSON.stringify(actors);
     if (!cache[cacheKey]){
-        cache[cacheKey] = { dimInterval: undefined, upDimm: true, currentBrightness: Number(getState(actors[0]).val)};
+        cache[cacheKey] = { dimInterval: undefined, upDimm: true, currentBrightness: Number(getState(getDataPoint(actors[0], 'level')).val)};
     }
     
     if (obj.state.val === true){
@@ -327,7 +327,7 @@ function dimUpDown(actors, upDown){
     // Check if the cache is available, if not one will be created 
     const cacheKey = JSON.stringify(actors);
     if (!cache[cacheKey]){
-        cache[cacheKey] = {currentBrightness: Number(getState(actors[0]).val)};
+        cache[cacheKey] = {currentBrightness: Number(getState(getDataPoint(actors[0], 'level')).val)};
     }
     // Dim up   
     if (upDown){
@@ -339,11 +339,11 @@ function dimUpDown(actors, upDown){
     }
     
     // Check if the current value exceeds the maximum value
-    if (cache[cacheKey].currentBrightness <= 10){
+    if (cache[cacheKey].currentBrightness < 10){
         cache[cacheKey].currentBrightness = 0;
     }
     // Check if the current value is below the minimum value 
-    else if (cache[cacheKey].currentBrightness >= 100){
+    else if (cache[cacheKey].currentBrightness > 100){
         cache[cacheKey].currentBrightness = 100;
     }
     // Set state
