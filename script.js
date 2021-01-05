@@ -3,7 +3,7 @@
 // - Colortemp handling
 // - Color handling
 // - NightTime handling 
-//
+// - TimeOut (PIR) handling 
 //////////////////////////
 
 // Define actors
@@ -30,12 +30,12 @@ const Actors = [
     {name: 'KZ.Licht.Decke', id: 'zigbee.0.842e14fffe1f08e7', briMin: 2},   
     // Schlafzimmer
     {name: 'SZ.Licht.Bett', id: 'zigbee.0.588e81fffefea724'},
-    {name: 'SZ.Blind.Links', id: 'zigbee.0.680ae2fffe974af1', posMin: 0, posMax: 90},
-    {name: 'SZ.Blind.Rechts', id: 'zigbee.0.680ae2fffe54a2ba', posMin: 0, posMax: 90},
+    {name: 'SZ.Blind.Links', id: 'zigbee.0.680ae2fffe974af1', posMax: 90},
+    {name: 'SZ.Blind.Rechts', id: 'zigbee.0.680ae2fffe54a2ba', posMax: 90},
     // Terrasse
     {name: 'TR.Licht.GardenPole', id: 'zigbee.0.7cb03eaa00a9572e', briMin: 2},   
     // Büro
-    {name: 'BU.Blind', id: 'zigbee.0.680ae2fffeed55f6', posMin: 0, posMax: 97},
+    {name: 'BU.Blind', id: 'zigbee.0.680ae2fffeed55f6', posMax: 97},
 ];
  
 // Define sensors
@@ -56,8 +56,7 @@ const Sensors = [
     // Wohnzimmer
     {name: 'WZ.Sensor.Fernbedienung', id: 'zigbee.0.00178801080cf9f9'},
     // Schlafzimmer
-    {name: 'SZ.Sensor.Taster.OpenClose', id: 'zigbee.0.680ae2fffe549bb6'},   
-    
+    {name: 'SZ.Sensor.Taster.OpenClose', id: 'zigbee.0.680ae2fffe549bb6'},
 ];
  
 // Definde events
@@ -74,8 +73,8 @@ const Events = [
     {sensor: 'KZ.Sensor.Taster.UP', events: ['up_button'], actors: ['KZ.Licht.Decke'], action: 'autoDim'},
     //{sensor: 'KZ.Sensor.Fernbedienung', events: ['on'], actors: ['KZ.Licht.Decke'], action: 'on'},
     //{sensor: 'KZ.Sensor.Fernbedienung', events: ['off'], actors: ['KZ.Licht.Decke'], action: 'off'},
-    {sensor: 'KZ.Sensor.Fernbedienung', events: ['brightness_step_up'], actors: ['WZ.Licht.StandLampe'], action: 'dimUp'},
-    {sensor: 'KZ.Sensor.Fernbedienung', events: ['brightness_step_down'], actors: ['WZ.Licht.StandLampe'], action: 'dimDown'},
+    //{sensor: 'KZ.Sensor.Fernbedienung', events: ['brightness_step_up'], actors: ['WZ.Licht.StandLampe'], action: 'dimUp'},
+    //{sensor: 'KZ.Sensor.Fernbedienung', events: ['brightness_step_down'], actors: ['WZ.Licht.StandLampe'], action: 'dimDown'},
     // Schlafzimmer
     {sensor: 'SZ.Sensor.Taster.OpenClose', events: ['cover_open'], actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: 'open'},
     {sensor: 'SZ.Sensor.Taster.OpenClose', events: ['cover_close'], actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: 'close'},
