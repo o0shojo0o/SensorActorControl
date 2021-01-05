@@ -261,14 +261,14 @@ function autoDim(obj, actors){
     // Check if the cache is available, if not one will be created 
     const cacheKey = JSON.stringify(actors);
     if (!cache[cacheKey]){
-        cache[cacheKey] = { dimInterval: undefined, upDimm: true, currentBrightness: Number(getState(getDataPoint(actors[0], 'level')).val)};
+        cache[cacheKey] = { dimInterval: undefined, upDimming: true, currentBrightness: Number(getState(getDataPoint(actors[0], 'level')).val)};
     }
     
-    if (obj.state.val === true){
+    if (obj.state.val == true){
         // Create interval
         cache[cacheKey].dimInterval = setInterval(()=>{     
             // Dim up       
-            if (cache[cacheKey].upDimming){
+            if (cache[cacheKey].upDimming == true){
                 cache[cacheKey].currentBrightness = cache[cacheKey].currentBrightness + 10;               
             }   
             // Dim down     
@@ -330,7 +330,7 @@ function dimUpDown(actors, upDown){
         cache[cacheKey] = {currentBrightness: Number(getState(getDataPoint(actors[0], 'level')).val)};
     }
     // Dim up   
-    if (upDown){
+    if (upDown == true){
         cache[cacheKey].currentBrightness = cache[cacheKey].currentBrightness + 10;
     }
     // Dim down  
