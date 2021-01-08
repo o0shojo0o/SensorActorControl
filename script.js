@@ -8,7 +8,7 @@
 
 // Define actors
 const Actors = [
-    // eg. {name: '', id: '', on: '', level: '', ct: '', color: '', posMin: 0, posMax: 100, briMin:0, briMax: 100},
+    // eg. {name: '', id: '', on: '', ct: '', color: '', pos:'', posMin: 0, posMax: 100, bri: '', briMin:0, briMax: 100},
     //Flur
     {name: 'FL.Licht.Decke.Hinten', id: 'zigbee.0.0017880102a096e5'},
     {name: 'FL.Licht.Decke.Vorne', id: 'zigbee.0.0017880102eebc0b'},
@@ -91,10 +91,34 @@ const Events = [
 const cache = [];
 
 // Register events
-// Run through each definetion
+// Are open or close events (blind) actions defined? 
+// 
+//const openCloseActors = Events.filter(x => x.action == 'open' || x.action == 'close');   
+//if (openCloseActors){
+//    // Get actor names array from objekt
+//    const actors = openCloseActors.map(x => x.actors);
+//    // Run each actor name
+//    for (const uKey in actors) {        
+//        for (const uuKey in actors[uKey]) {
+//            const actorName = actors[uKey][uuKey];
+//            // If no cache is defined for the actor name,
+//            // define cache and register event
+//            if (!cache[actorName]){
+//                // Define cache
+//                cache[actorName] = {posMin: 0, posMax: 100, openRun: false, closeRun: false};
+//                // Register event
+//                on ({id: getDataPoint(actorName, 'pos'),  change: 'ne'}, (obj)=> {                                  
+//                    openClose([actorName], undefined, obj);         
+//                }); 
+//            }           
+//        }            
+//    }
+//}
+// Run through each event definetion
 for (const key in Events) {
-    const sensor = Sensors.find(x=>x.name == Events[key].sensor);
-    const events = Events[key].events;   
+    const sensor = Sensors.find(x => x.name == Events[key].sensor);
+    const events = Events[key].events; 
+    
     // Run through each events
     for (const eKey in events) {
         const triggerDp = sensor.id + '.' + events[eKey];    
@@ -153,14 +177,14 @@ for (const key in Events) {
         // Open (Blind) event register
         else if (action == 'open') {
             on ({id: triggerDp, val: true}, (obj)=> { 
-                openClose(actors, true);
+                openClose(actors, true, undefined);
             });
         }
 
         // Close (Blind) event register
         else if (action == 'close') {
             on ({id: triggerDp, val: true}, (obj)=> { 
-                openClose(actors, false);
+                openClose(actors, false, undefined);
             });
         }
     }
@@ -185,7 +209,7 @@ function getDataPoint(actorName, control){
                 dataPoint =  `${actor.id}.state`;
             }
 
-            else if (control == 'level'){
+            else if (control == 'bri'){
                 dataPoint = `${actor.id}.brightness`;
             }
 
@@ -200,6 +224,10 @@ function getDataPoint(actorName, control){
             else if (control == 'pos'){
                 dataPoint = `${actor.id}.position`;
             }
+
+            else if (control == 'stop'){
+                dataPoint = `${actor.id}.stop`;
+            }
         }
 
         // WLED Actor
@@ -207,7 +235,7 @@ function getDataPoint(actorName, control){
             if (control == 'on'){
                 dataPoint = `${actor.id}.on`;
             }
-            else if (control == 'level'){
+            else if (control == 'bri'){
                 dataPoint = `${actor.id}.bri`;
             }
 
@@ -215,10 +243,17 @@ function getDataPoint(actorName, control){
                 dataPoint = `${actor.id}.seg.0.col.0_HEX`;
             }
         }
+
+         // WLED Actor
+         else if (actor.id.startsWith('sonoff')){
+            if (control == 'on'){
+                dataPoint = `${actor.id}.POWER`;
+            }            
+        }
     }
 
     if (!existsState(dataPoint)){
-        log(`State: ${control} for Device: ${actor.name} rejected, state not exist!`, 'warn')
+        log(`(${dataPoint}) State: ${control} for Device: ${actor.name} rejected, state not exist!`, 'warn')
         return undefined;
     }
    
@@ -260,7 +295,7 @@ function autoDim(obj, actors){
     // Check if the cache is available, if not one will be created 
     const cacheKey = JSON.stringify(actors);
     if (!cache[cacheKey]){
-        cache[cacheKey] = { dimInterval: undefined, upDimming: true, currentBrightness: Number(getState(getDataPoint(actors[0], 'level')).val)};
+        cache[cacheKey] = { dimInterval: undefined, upDimming: true, currentBrightness: Number(getState(getDataPoint(actors[0], 'bri')).val)};
     }
     
     if (obj.state.val == true){
@@ -282,14 +317,14 @@ function autoDim(obj, actors){
                 //cache[cacheKey].upDimming = false;
             }
             // Check if the current value is below the minimum value 
-            else if (cache[cacheKey].currentBrightness <= 10){
+            else if (cache[cacheKey].currentBrightness < 10){
                 cache[cacheKey].currentBrightness = 0;
                 // Auto change dim direction 
                 //cache[cacheKey].upDimming = true;
             }   
             // Set state
             for (const key in actors) {
-                const dataPoint = getDataPoint(actors[key], 'level'); 
+                const dataPoint = getDataPoint(actors[key], 'bri'); 
                 if  (dataPoint != undefined){
                     let briMin = 0, briMax = 100;
                     // Get actor
@@ -326,7 +361,7 @@ function dimUpDown(actors, upDown){
     // Check if the cache is available, if not one will be created 
     const cacheKey = JSON.stringify(actors);
     if (!cache[cacheKey]){
-        cache[cacheKey] = {currentBrightness: Number(getState(getDataPoint(actors[0], 'level')).val)};
+        cache[cacheKey] = {currentBrightness: Number(getState(getDataPoint(actors[0], 'bri')).val)};
     }
     // Dim up   
     if (upDown == true){
@@ -347,7 +382,7 @@ function dimUpDown(actors, upDown){
     }
     // Set state
     for (const key in actors) {
-        const dataPoint = getDataPoint(actors[key], 'level');   
+        const dataPoint = getDataPoint(actors[key], 'bri');   
         if  (dataPoint != undefined){    
             let briMin = 0, briMax = 100;
             // Get actor
@@ -372,29 +407,63 @@ function dimUpDown(actors, upDown){
 * @param {string[]} actors
 * @param {boolean} openClose
 */
-function openClose(actors, openClose){
-    for (const key in actors) {        
-        const dataPoint = getDataPoint(actors[key], 'pos'); 
-        if  (dataPoint != undefined){    
-            // Get actor
-            const actor = Actors.find(x=>x.name == actors[key]);
+function openClose(actors, openClose, eventObj){    
+    for (const key in actors) {   
+        // Get actor
+        const actor = Actors.find(x=>x.name == actors[key]);     
+
+        //if (openClose == undefined){ 
+        //    if (Number(eventObj.state.val) == cache[actor.name].posMin){
+        //        cache[actor.name].closeRun = false;  
+        //    }
+        //    if (Number(eventObj.state.val) == cache[actor.name].posMax){
+        //        cache[actor.name].openRun = false;  
+        //    }
+        //    return;
+        //}       
+
+        // Get datapoint
+        const dataPoint = getDataPoint(actor.name, 'pos'); 
+        //const stopDataPoint = getDataPoint(actor.name, 'stop');
+        if  (dataPoint != undefined){  
             let desiredPos;
             // Open
             if (openClose == true){
+                //if (cache[actor.name].openRun == true){   
+                //    cache[actor.name].openRun = false;                 
+                //    setState(stopDataPoint, true);
+                //    log(`openRun: ${cache[actor.name].openRun}`);
+                //    return;
+                //}
+
                 desiredPos = 100;
                 // Has an override been defined?
                 if (actor.posMax){
                     desiredPos = actor.posMax;
                 }
+                //cache[actor.name].posMax = desiredPos;
+                //cache[actor.name].closeRun = false;  
+                //cache[actor.name].openRun = true;
             }               
             // Close
             else{
+                //if (cache[actor.name].closeRun == true){   
+                //    cache[actor.name].closeRun = false;                 
+                //    setState(stopDataPoint, true);
+                //    log(`closeRun: ${cache[actor.name].closeRun}`);
+                //    return;
+                //}
+
                 desiredPos = 0;
                 // Has an override been defined?
                 if (actor.posMin){
                     desiredPos = actor.posMin;
-                }               
+                }
+                //cache[actor.name].posMin = desiredPos;    
+                //cache[actor.name].closeRun = true;  
+                //cache[actor.name].openRun = false;           
             }
+            // Set datapoint
             setState(dataPoint, Number(desiredPos));
         }
     } 
@@ -413,3 +482,7 @@ function createRemap(inMin, inMax, outMin, outMax) {
         return Number(((x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin).toFixed());
     };
 }
+
+function onlyUnique(value, index, self) {
+    return self.indexOf(value) === index;
+  }
