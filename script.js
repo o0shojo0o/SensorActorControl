@@ -12,28 +12,29 @@ const Actors = [
     //Flur
     {name: 'FL.Licht.Decke.Hinten', id: 'zigbee.0.0017880102a096e5'},
     {name: 'FL.Licht.Decke.Vorne', id: 'zigbee.0.0017880102eebc0b'},
+    {name: 'FL.Licht.Decke', id: 'zigbee.0.group_2'},
     {name: 'FL.Licht.Links', id: 'zigbee.0.84182600000c6dfd'},
     // Küche
-    {name: 'KU.Licht.Deckenleuchte', id: 'zigbee.0.group_1', briMin: 2},
-    {name: 'KU.Licht.Deckenleuchte.1', id: 'zigbee.0.842e14fffe2304a1', briMin: 2},
-    {name: 'KU.Licht.Deckenleuchte.2', id: 'zigbee.0.588e81fffee3b050', briMin: 2},
-    {name: 'KU.Licht.Deckenleuchte.3', id: 'zigbee.0.588e81fffed3eddd', briMin: 2},
+    {name: 'KU.Licht.Deckenleuchte', id: 'zigbee.0.group_1', briMin: 1},
+    {name: 'KU.Licht.Deckenleuchte.1', id: 'zigbee.0.842e14fffe2304a1', briMin: 1},
+    {name: 'KU.Licht.Deckenleuchte.2', id: 'zigbee.0.588e81fffee3b050', briMin: 1},
+    {name: 'KU.Licht.Deckenleuchte.3', id: 'zigbee.0.588e81fffed3eddd', briMin: 1},
     {name: 'KU.Licht.Arbeitsplatte', id: 'zigbee.0.group_3'},
     {name: 'KU.Licht.Arbeitsplatte.Links',  id: 'zigbee.0.7cb03eaa00b1a4bf'},
     {name: 'KU.Licht.Arbeitsplatte.Rechts', id: 'zigbee.0.84182600000c9c50'},
     // Wohnzimmer
     {name: 'WZ.Licht.Fensterbank', id: 'zigbee.0.84182600000c77dd'},
-    {name: 'WZ.Licht.StandLampe', id: 'zigbee.0.588e81fffedb8b1a', briMin: 2},    
+    {name: 'WZ.Licht.StandLampe', id: 'zigbee.0.588e81fffedb8b1a', briMin: 1},    
     // Kinderzimmer
     {name: 'KZ.Licht.Betthimmel', id: 'zigbee.0.8418260000101f8c'},
     {name: 'KZ.Licht.Disco', id: 'zigbee.0.841826000010328a'},
-    {name: 'KZ.Licht.Decke', id: 'zigbee.0.842e14fffe1f08e7', briMin: 2},   
+    {name: 'KZ.Licht.Decke', id: 'zigbee.0.842e14fffe1f08e7', briMin: 1},   
     // Schlafzimmer
     {name: 'SZ.Licht.Bett', id: 'zigbee.0.588e81fffefea724'},
     {name: 'SZ.Blind.Links', id: 'zigbee.0.680ae2fffe974af1', posMax: 90},
     {name: 'SZ.Blind.Rechts', id: 'zigbee.0.680ae2fffe54a2ba', posMax: 90},
     // Terrasse
-    {name: 'TR.Licht.GardenPole', id: 'zigbee.0.7cb03eaa00a9572e', briMin: 2},   
+    {name: 'TR.Licht.GardenPole', id: 'zigbee.0.7cb03eaa00a9572e', briMin: 1},   
     // Büro
     {name: 'BU.Blind', id: 'zigbee.0.680ae2fffeed55f6', posMax: 97},
 ];
@@ -42,8 +43,8 @@ const Actors = [
 const Sensors = [
     // eg. {name: '', id: ''},
     //Flur
-    {name: 'FL.Sensor.Taster.UP.Hinten', id: ''}, // Todo
-    {name: 'FL.Sensor.Taster.UP.Vorne', id: ''}, // Todo
+    {name: 'FL.Sensor.Taster.UP.Hinten', id: 'zigbee.0.5c0272fffe3f3d82'},
+    {name: 'FL.Sensor.Taster.UP.Vorne', id: 'zigbee.0.5c0272fffe3f3f29'},
     // Küche
     {name: 'KU.Sensor.Taster', id: 'zigbee.0.00158d00027bd7e1'},
     // Büro
@@ -85,6 +86,11 @@ const Events = [
     {sensor: 'WZ.Sensor.Fernbedienung', events: ['state'], actors: ['WZ.Licht.StandLampe'], action: 'onOff'},
     {sensor: 'WZ.Sensor.Fernbedienung', events: ['up_button', 'up_hold'], actors: ['WZ.Licht.StandLampe'], action: 'dimUp'},
     {sensor: 'WZ.Sensor.Fernbedienung', events: ['down_button', 'down_hold'], actors: ['WZ.Licht.StandLampe'], action: 'dimDown'},
+    // Flur
+    {sensor: 'FL.Sensor.Taster.UP.Vorne', events: ['state'], actors: ['FL.Licht.Decke'], action: 'toggle'},
+    {sensor: 'FL.Sensor.Taster.UP.Vorne', events: ['up_button'], actors: ['FL.Licht.Decke'], action: 'autoDim'},
+    {sensor: 'FL.Sensor.Taster.UP.Hinten', events: ['state'], actors: ['FL.Licht.Decke'], action: 'toggle'},
+    {sensor: 'FL.Sensor.Taster.UP.Hinten', events: ['up_button'], actors: ['FL.Licht.Decke'], action: 'autoDim'},
 ];
 
 /////////////////////////////////////////////////// Logic ////////////////////////////////////////////////////////////////////
@@ -92,28 +98,28 @@ const cache = [];
 
 // Register events
 // Are open or close events (blind) actions defined? 
-// 
-//const openCloseActors = Events.filter(x => x.action == 'open' || x.action == 'close');   
-//if (openCloseActors){
-//    // Get actor names array from objekt
-//    const actors = openCloseActors.map(x => x.actors);
-//    // Run each actor name
-//    for (const uKey in actors) {        
-//        for (const uuKey in actors[uKey]) {
-//            const actorName = actors[uKey][uuKey];
-//            // If no cache is defined for the actor name,
-//            // define cache and register event
-//            if (!cache[actorName]){
-//                // Define cache
-//                cache[actorName] = {posMin: 0, posMax: 100, openRun: false, closeRun: false};
-//                // Register event
-//                on ({id: getDataPoint(actorName, 'pos'),  change: 'ne'}, (obj)=> {                                  
-//                    openClose([actorName], undefined, obj);         
-//                }); 
-//            }           
-//        }            
-//    }
-//}
+const openCloseActors = Events.filter(x => x.action == 'open' || x.action == 'close').filter(onlyUnique);
+if (openCloseActors){
+    // Get actor names array from objekt
+    const actors = openCloseActors.map(x => x.actors);
+    
+    // Create array of actor names
+    let actorNames = [];
+    for (const uKey in actors) {        
+        for (const uuKey in actors[uKey]) {     
+            actorNames.push(actors[uKey][uuKey])     
+        }     
+    }
+    // Filter actor names of unique
+    actorNames = actorNames.filter(onlyUnique);
+    // Register event
+     for (const key in actorNames) {  
+        on ({id: getDataPoint(actorNames[key], 'pos'),  change: 'ne'}, (obj)=> {                                  
+            openClose([actorNames[key]], undefined, obj);         
+        }); 
+     }           
+}
+
 // Run through each event definetion
 for (const key in Events) {
     const sensor = Sensors.find(x => x.name == Events[key].sensor);
@@ -406,62 +412,69 @@ function dimUpDown(actors, upDown){
 /**
 * @param {string[]} actors
 * @param {boolean} openClose
+* @param {iobJS.ChangedStateObject<any, any>} eventObj
 */
 function openClose(actors, openClose, eventObj){    
     for (const key in actors) {   
         // Get actor
-        const actor = Actors.find(x=>x.name == actors[key]);     
+        const actor = Actors.find(x=>x.name == actors[key]);  
 
-        //if (openClose == undefined){ 
-        //    if (Number(eventObj.state.val) == cache[actor.name].posMin){
-        //        cache[actor.name].closeRun = false;  
-        //    }
-        //    if (Number(eventObj.state.val) == cache[actor.name].posMax){
-        //        cache[actor.name].openRun = false;  
-        //    }
-        //    return;
-        //}       
+        // If no cache is defined for the actor name,
+        // define cache and register event
+        if (!cache[actor.name]){
+            // Define cache
+            cache[actor.name] = {posMin: 0, posMax: 100, openRun: false, closeRun: false};
+
+            // Has an override been defined?
+            if (actor.posMax){
+                 cache[actor.name].posMax = actor.posMax;
+            }
+            if (actor.posMin){
+                cache[actor.name].posMin = actor.posMin;
+            }            
+        }
+
+
+        if (openClose == undefined && !eventObj.state.from.includes('adapter.javascript')){ 
+            if (Number(eventObj.state.val) == cache[actor.name].posMin){
+                cache[actor.name].closeRun = false;  
+            }
+            if (Number(eventObj.state.val) == cache[actor.name].posMax){
+                cache[actor.name].openRun = false;                  
+            }
+            return;
+        }       
 
         // Get datapoint
         const dataPoint = getDataPoint(actor.name, 'pos'); 
-        //const stopDataPoint = getDataPoint(actor.name, 'stop');
-        if  (dataPoint != undefined){  
+        const stopDataPoint = getDataPoint(actor.name, 'stop');
+        if  (stopDataPoint != undefined && dataPoint != undefined && openClose != undefined){  
             let desiredPos;
             // Open
             if (openClose == true){
-                //if (cache[actor.name].openRun == true){   
-                //    cache[actor.name].openRun = false;                 
-                //    setState(stopDataPoint, true);
-                //    log(`openRun: ${cache[actor.name].openRun}`);
-                //    return;
-                //}
-
-                desiredPos = 100;
-                // Has an override been defined?
-                if (actor.posMax){
-                    desiredPos = actor.posMax;
+                if (cache[actor.name].openRun == true){   
+                    cache[actor.name].openRun = false;                 
+                    setState(stopDataPoint, true);
+                    return;
                 }
-                //cache[actor.name].posMax = desiredPos;
-                //cache[actor.name].closeRun = false;  
-                //cache[actor.name].openRun = true;
+
+                desiredPos = cache[actor.name].posMax;
+ 
+                cache[actor.name].closeRun = false;  
+                cache[actor.name].openRun = true;
             }               
             // Close
             else{
-                //if (cache[actor.name].closeRun == true){   
-                //    cache[actor.name].closeRun = false;                 
-                //    setState(stopDataPoint, true);
-                //    log(`closeRun: ${cache[actor.name].closeRun}`);
-                //    return;
-                //}
-
-                desiredPos = 0;
-                // Has an override been defined?
-                if (actor.posMin){
-                    desiredPos = actor.posMin;
+                if (cache[actor.name].closeRun == true){   
+                    cache[actor.name].closeRun = false;                 
+                    setState(stopDataPoint, true);
+                    return;
                 }
-                //cache[actor.name].posMin = desiredPos;    
-                //cache[actor.name].closeRun = true;  
-                //cache[actor.name].openRun = false;           
+
+                desiredPos = cache[actor.name].posMin;
+               
+                cache[actor.name].closeRun = true;  
+                cache[actor.name].openRun = false;           
             }
             // Set datapoint
             setState(dataPoint, Number(desiredPos));
