@@ -208,7 +208,7 @@ for (const key in Events) {
         // AutoDim event register
         else if (action == 'autoDim') {
             on ({id: triggerDp}, (obj) => { 
-                autoDim(obj, actors);
+                autoDim(actors, obj);
             });
         }
 
@@ -355,7 +355,7 @@ function toggle(actors) {
 * @param {iobJS.ChangedStateObject<any, any>} obj
 * @param {string[]} actors
 */
-function autoDim(obj, actors) {
+function autoDim(actors, obj) {
     // Check if the cache is available, if not one will be created 
     const cacheKey = JSON.stringify(actors);
     if (!cache[cacheKey]) {
