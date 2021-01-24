@@ -47,6 +47,7 @@ const Sensors = [
     {name: 'FL.Sensor.Taster.UP.Vorne', id: 'zigbee.0.5c0272fffe3f3f29'},
     // Küche
     {name: 'KU.Sensor.Taster', id: 'zigbee.0.00158d00027bd7e1'},
+    {name: 'KU.Sensor.PIR', id: 'zigbee.0.00158d000276e21e'},
     // Büro
     {name: 'BU.Sensor.Taster.Free', id: 'zigbee.0.00158d00027c1027'},
     {name: 'BU.Sensor.Taster.OpenClose', id: 'zigbee.0.680ae2fffeaca6fa'},
@@ -62,11 +63,12 @@ const Sensors = [
  
 // Definde events
 const Events = [
-    // eg.  {sensor: '', events: ['',''], actors: ['',''], action: ''}, current available [ toggle, on, off, autoDim, dimUp, dimDown, open, close ]
+    // eg.  {sensor: '', events: ['',''], actors: ['',''], action: ''}, current available [ toggle, on, off, onForce, offForce, autoDim, dimUp, dimDown, open, close, timeOut:sec ]
     // Küche
     {sensor: 'KU.Sensor.Taster', events: ['right_click'], actors: ['KU.Licht.Arbeitsplatte.Links'], action: 'toggle'},
     {sensor: 'KU.Sensor.Taster', events: ['left_click'], actors: ['KU.Licht.Arbeitsplatte.Rechts'], action: 'toggle'},
     {sensor: 'KU.Sensor.Taster', events: ['both_click'], actors: ['KU.Licht.Deckenleuchte'], action: 'toggle'},
+    {sensor: 'KU.Sensor.PIR', events: ['occupancy'], actors: ['KU.Licht.Arbeitsplatte.Links'], action: 'on'},
     // Kinderzimmer
     {sensor: 'KZ.Sensor.Taster', events: ['left_click'], actors: ['KZ.Licht.Disco'], action: 'toggle'},
     {sensor: 'KZ.Sensor.Taster', events: ['right_click'], actors: ['KZ.Licht.Betthimmel'], action: 'toggle'},
@@ -97,11 +99,41 @@ const Events = [
 const cache = [];
 
 // Register events
-// Are open or close events (blind) actions defined? 
-const openCloseActors = Events.filter(x => x.action == 'open' || x.action == 'close').filter(onlyUnique);
-if (openCloseActors){
+// Are on or off events actions defined? 
+const onOffEvents = Events.filter(x => x.action == 'on' || x.action == 'off');
+if (onOffEvents) {
     // Get actor names array from objekt
-    const actors = openCloseActors.map(x => x.actors);
+    const actors = onOffEvents.map(x => x.actors);
+    
+    // Create array of actor names
+    let actorNames = [];
+    for (const uKey in actors) {        
+        for (const uuKey in actors[uKey]) {     
+            actorNames.push(actors[uKey][uuKey])     
+        }     
+    }
+    // Filter actor names of unique
+    actorNames = actorNames.filter(onlyUnique);
+    // Register event
+    for (const key in actorNames) {
+        const dataPoint = getDataPoint(actorNames[key], 'on')
+        // Init cache object
+        if (!cache[actorNames[key]]) {
+            cache[actorNames[key]] = {};
+            cache[actorNames[key]].state = getState(dataPoint).val;
+        }
+        on ({id: dataPoint,  change: 'ne'}, (obj) => {            
+            cache[actorNames[key]].state = obj.state.val;         
+        }); 
+    }           
+}
+
+// Register events
+// Are open or close events (blind) actions defined? 
+const openCloseEvents = Events.filter(x => x.action == 'open' || x.action == 'close');
+if (openCloseEvents) {
+    // Get actor names array from objekt
+    const actors = openCloseEvents.map(x => x.actors);
     
     // Create array of actor names
     let actorNames = [];
@@ -114,7 +146,7 @@ if (openCloseActors){
     actorNames = actorNames.filter(onlyUnique);
     // Register event
      for (const key in actorNames) {  
-        on ({id: getDataPoint(actorNames[key], 'pos'),  change: 'ne'}, (obj)=> {                                  
+        on ({id: getDataPoint(actorNames[key], 'pos'),  change: 'ne'}, (obj) => {                                  
             openClose([actorNames[key]], undefined, obj);         
         }); 
      }           
@@ -133,63 +165,77 @@ for (const key in Events) {
         
         // Toogle event register
         if (action == 'toggle') {
-            on ({id: triggerDp, val: true}, (obj)=> {
+            on ({id: triggerDp, val: true}, (obj) => {
                 toggle(actors);
             });
         }
     
         // On event register
         else if (action == 'on') {
-            on ({id: triggerDp, val: true}, (obj)=> {
-                setOnOff(actors, true);
+            on ({id: triggerDp, val: true}, (obj) => {
+                setOnOff(actors, true, false);
             });
         } 
         
         // Off event register
         else if (action == 'off') {
-            on ({id: triggerDp, val: true}, (obj)=> { 
-                setOnOff(actors, false);
+            on ({id: triggerDp, val: true}, (obj) => { 
+                setOnOff(actors, false, false);
+            });
+        }
+
+          // On event register
+        else if (action == 'onForce') {
+            on ({id: triggerDp, val: true}, (obj) => {
+                setOnOff(actors, true, true);
+            });
+        } 
+        
+        // Off event register
+        else if (action == 'offForce') {
+            on ({id: triggerDp, val: true}, (obj) => { 
+                setOnOff(actors, false, true);
             });
         }
 
         // OnOff event register
         else if (action == 'onOff') {
-            on ({id: triggerDp}, (obj)=> { 
-                setOnOff(actors, obj.state.val);
+            on ({id: triggerDp}, (obj) => { 
+                setOnOff(actors, obj.state.val, true);
             });
         }
 
         // AutoDim event register
         else if (action == 'autoDim') {
-            on ({id: triggerDp}, (obj)=> { 
+            on ({id: triggerDp}, (obj) => { 
                 autoDim(obj, actors);
             });
         }
 
         // DimUp event register
         else if (action == 'dimUp') {
-            on ({id: triggerDp, val: true}, (obj)=> { 
+            on ({id: triggerDp, val: true}, (obj) => { 
                 dimUpDown(actors, true);
             });
         }
 
         // DimDown event register
         else if (action == 'dimDown') {
-            on ({id: triggerDp, val: true}, (obj)=> { 
+            on ({id: triggerDp, val: true}, (obj) => { 
                 dimUpDown(actors, false);
             });
         }
 
         // Open (Blind) event register
         else if (action == 'open') {
-            on ({id: triggerDp, val: true}, (obj)=> { 
+            on ({id: triggerDp, val: true}, (obj) => { 
                 openClose(actors, true, undefined);
             });
         }
 
         // Close (Blind) event register
         else if (action == 'close') {
-            on ({id: triggerDp, val: true}, (obj)=> { 
+            on ({id: triggerDp, val: true}, (obj) => { 
                 openClose(actors, false, undefined);
             });
         }
@@ -201,64 +247,64 @@ for (const key in Events) {
 * @param {string} actorName
 * @param {string} control
 */
-function getDataPoint(actorName, control){    
+function getDataPoint(actorName, control) {    
     let dataPoint;
     const actor = Actors.find(x=>x.name == actorName)    
     // Has an override been defined?
-    if (actor[control] != undefined){
+    if (actor[control] != undefined) {
         dataPoint =  `${actor.id}.${actor[control]}`;        
     }
     else{
         // Zigbee actor
-        if (actor.id.startsWith('zigbee')){
-            if (control == 'on'){
+        if (actor.id.startsWith('zigbee')) {
+            if (control == 'on') {
                 dataPoint =  `${actor.id}.state`;
             }
 
-            else if (control == 'bri'){
+            else if (control == 'bri') {
                 dataPoint = `${actor.id}.brightness`;
             }
 
-            else if (control == 'ct'){
+            else if (control == 'ct') {
                 dataPoint = `${actor.id}.colortemp`;
             }
 
-            else if (control == 'color'){
+            else if (control == 'color') {
                 dataPoint = `${actor.id}.color`;
             }
 
-            else if (control == 'pos'){
+            else if (control == 'pos') {
                 dataPoint = `${actor.id}.position`;
             }
 
-            else if (control == 'stop'){
+            else if (control == 'stop') {
                 dataPoint = `${actor.id}.stop`;
             }
         }
 
         // WLED Actor
-        else if (actor.id.startsWith('wled')){
-            if (control == 'on'){
+        else if (actor.id.startsWith('wled')) {
+            if (control == 'on') {
                 dataPoint = `${actor.id}.on`;
             }
-            else if (control == 'bri'){
+            else if (control == 'bri') {
                 dataPoint = `${actor.id}.bri`;
             }
 
-            else if (control == 'color'){
+            else if (control == 'color') {
                 dataPoint = `${actor.id}.seg.0.col.0_HEX`;
             }
         }
 
          // WLED Actor
-         else if (actor.id.startsWith('sonoff')){
-            if (control == 'on'){
+        else if (actor.id.startsWith('sonoff')) {
+            if (control == 'on') {
                 dataPoint = `${actor.id}.POWER`;
             }            
         }
     }
 
-    if (!existsState(dataPoint)){
+    if (!existsState(dataPoint)) {
         log(`(${dataPoint}) State: ${control} for Device: ${actor.name} rejected, state not exist!`, 'warn')
         return undefined;
     }
@@ -270,12 +316,22 @@ function getDataPoint(actorName, control){
 /**
 * @param {string[]} actors
 * @param {boolean} onOff
++ @param {boolean} force
 */
-function setOnOff(actors, onOff) { 
+function setOnOff(actors, onOff, force) { 
     for (const key in actors) {
         const dataPoint = getDataPoint(actors[key], 'on'); 
-        if  (dataPoint != undefined){    
-            setState(dataPoint, onOff)
+        if (dataPoint != undefined) {     
+            if (force == true) {
+                setState(dataPoint, onOff)
+                log(`setOnOff force -> set ${actors[key]} of ${onOff}`);
+            }
+            else {                
+                if (cache[actors[key]].state != onOff) {
+                    setState(dataPoint, onOff)
+                    log(`setOnOff -> set ${actors[key]} of ${onOff}`);
+                }
+            }
         }
     } 
 }
@@ -287,8 +343,10 @@ function setOnOff(actors, onOff) {
 function toggle(actors) {   
     for (const key in actors) {
         const dataPoint = getDataPoint(actors[key], 'on'); 
-        if  (dataPoint != undefined){    
-            setState(dataPoint, !getState(dataPoint).val);
+        if  (dataPoint != undefined) {
+            const currentState = getState(dataPoint).val;
+            setState(dataPoint, !currentState);
+            log(`toggle -> set ${actors[key]} of ${!currentState}`);
         }
     }
 }
@@ -297,18 +355,20 @@ function toggle(actors) {
 * @param {iobJS.ChangedStateObject<any, any>} obj
 * @param {string[]} actors
 */
-function autoDim(obj, actors){
+function autoDim(obj, actors) {
     // Check if the cache is available, if not one will be created 
     const cacheKey = JSON.stringify(actors);
-    if (!cache[cacheKey]){
-        cache[cacheKey] = { dimInterval: undefined, upDimming: true, currentBrightness: Number(getState(getDataPoint(actors[0], 'bri')).val)};
+    if (!cache[cacheKey]) {
+        cache[cacheKey] = {};
+        cache[cacheKey].upDimming= true;
+        cache[cacheKey].currentBrightness = Number(getState(getDataPoint(actors[0], 'bri')).val);
     }
     
-    if (obj.state.val == true){
+    if (obj.state.val == true) {
         // Create interval
-        cache[cacheKey].dimInterval = setInterval(()=>{     
+        cache[cacheKey].dimInterval = setInterval(() => {     
             // Dim up       
-            if (cache[cacheKey].upDimming == true){
+            if (cache[cacheKey].upDimming == true) {
                 cache[cacheKey].currentBrightness = cache[cacheKey].currentBrightness + 10;               
             }   
             // Dim down     
@@ -317,13 +377,13 @@ function autoDim(obj, actors){
             }
 
             // Check if the current value exceeds the maximum value
-            if (cache[cacheKey].currentBrightness > 100){
+            if (cache[cacheKey].currentBrightness > 100) {
                 cache[cacheKey].currentBrightness = 100;
                 // Auto change dim direction 
                 //cache[cacheKey].upDimming = false;
             }
             // Check if the current value is below the minimum value 
-            else if (cache[cacheKey].currentBrightness < 10){
+            else if (cache[cacheKey].currentBrightness < 10) {
                 cache[cacheKey].currentBrightness = 0;
                 // Auto change dim direction 
                 //cache[cacheKey].upDimming = true;
@@ -331,27 +391,28 @@ function autoDim(obj, actors){
             // Set state
             for (const key in actors) {
                 const dataPoint = getDataPoint(actors[key], 'bri'); 
-                if  (dataPoint != undefined){
+                if  (dataPoint != undefined) {
                     let briMin = 0, briMax = 100;
                     // Get actor
                     const actor = Actors.find(x=>x.name == actors[key]);
                     // Has an override been defined?
-                    if (actor.briMin){
+                    if (actor.briMin) {
                         briMin = actor.briMin;
                     }
                     // Has an override been defined?
-                    if (actor.briMax){
+                    if (actor.briMax) {
                         briMax = actor.briMax;
                     }
                     // Create reMap 
-                    const reMap = createRemap(0 ,100, briMin, briMax);
+                    const reMap = createRemap(0, 100, briMin, briMax);
                     // Set state    
                     setState(dataPoint, reMap(cache[cacheKey].currentBrightness));
+                    log(`autoDim -> set ${actors[key]} of ${reMap(cache[cacheKey].currentBrightness)}%`);
                 }
             } 
         }, 500);
     }    
-    else{
+    else {
         // On release stop dimming 
         clearInterval(cache[cacheKey].dimInterval);
         // On release change dim direction 
@@ -363,14 +424,15 @@ function autoDim(obj, actors){
 * @param {string[]} actors
 * @param {boolean} upDown
 */
-function dimUpDown(actors, upDown){
+function dimUpDown(actors, upDown) {
     // Check if the cache is available, if not one will be created 
     const cacheKey = JSON.stringify(actors);
-    if (!cache[cacheKey]){
-        cache[cacheKey] = {currentBrightness: Number(getState(getDataPoint(actors[0], 'bri')).val)};
+    if (!cache[cacheKey]) {
+        cache[cacheKey] = {};
+        cache[cacheKey].currentBrightness = Number(getState(getDataPoint(actors[0], 'bri')).val);
     }
     // Dim up   
-    if (upDown == true){
+    if (upDown == true) {
         cache[cacheKey].currentBrightness = cache[cacheKey].currentBrightness + 10;
     }
     // Dim down  
@@ -379,32 +441,33 @@ function dimUpDown(actors, upDown){
     }
     
     // Check if the current value exceeds the maximum value
-    if (cache[cacheKey].currentBrightness < 10){
+    if (cache[cacheKey].currentBrightness < 10) {
         cache[cacheKey].currentBrightness = 0;
     }
     // Check if the current value is below the minimum value 
-    else if (cache[cacheKey].currentBrightness > 100){
+    else if (cache[cacheKey].currentBrightness > 100) {
         cache[cacheKey].currentBrightness = 100;
     }
     // Set state
     for (const key in actors) {
         const dataPoint = getDataPoint(actors[key], 'bri');   
-        if  (dataPoint != undefined){    
+        if  (dataPoint != undefined) {    
             let briMin = 0, briMax = 100;
             // Get actor
             const actor = Actors.find(x=>x.name == actors[key]);
             // Has an override been defined?
-            if (actor.briMin){
+            if (actor.briMin) {
                 briMin = actor.briMin;
             }
             // Has an override been defined?
-            if (actor.briMax){
+            if (actor.briMax) {
                 briMax = actor.briMax;
             }
             // Create reMap 
             const reMap = createRemap(0 , 100, briMin, briMax);
             // Set state
             setState(dataPoint, reMap(cache[cacheKey].currentBrightness));
+            log(`dimUpDown -> set ${actors[key]} of ${reMap(cache[cacheKey].currentBrightness)}%`);
         }
     } 
 }
@@ -414,32 +477,32 @@ function dimUpDown(actors, upDown){
 * @param {boolean} openClose
 * @param {iobJS.ChangedStateObject<any, any>} eventObj
 */
-function openClose(actors, openClose, eventObj){    
+function openClose(actors, openClose, eventObj) {    
     for (const key in actors) {   
         // Get actor
-        const actor = Actors.find(x=>x.name == actors[key]);  
+        const actor = Actors.find(x => x.name == actors[key]);  
 
         // If no cache is defined for the actor name,
         // define cache and register event
-        if (!cache[actor.name]){
+        if (!cache[actor.name]) {
             // Define cache
             cache[actor.name] = {posMin: 0, posMax: 100, openRun: false, closeRun: false};
 
             // Has an override been defined?
-            if (actor.posMax){
+            if (actor.posMax) {
                  cache[actor.name].posMax = actor.posMax;
             }
-            if (actor.posMin){
+            if (actor.posMin) {
                 cache[actor.name].posMin = actor.posMin;
             }            
         }
 
 
-        if (openClose == undefined && !eventObj.state.from.includes('adapter.javascript')){ 
-            if (Number(eventObj.state.val) == cache[actor.name].posMin){
+        if (openClose == undefined && !eventObj.state.from.includes('adapter.javascript')) { 
+            if (Number(eventObj.state.val) == cache[actor.name].posMin) {
                 cache[actor.name].closeRun = false;  
             }
-            if (Number(eventObj.state.val) == cache[actor.name].posMax){
+            if (Number(eventObj.state.val) == cache[actor.name].posMax) {
                 cache[actor.name].openRun = false;                  
             }
             return;
@@ -448,11 +511,11 @@ function openClose(actors, openClose, eventObj){
         // Get datapoint
         const dataPoint = getDataPoint(actor.name, 'pos'); 
         const stopDataPoint = getDataPoint(actor.name, 'stop');
-        if  (stopDataPoint != undefined && dataPoint != undefined && openClose != undefined){  
+        if  (stopDataPoint != undefined && dataPoint != undefined && openClose != undefined) {  
             let desiredPos;
             // Open
-            if (openClose == true){
-                if (cache[actor.name].openRun == true){   
+            if (openClose == true) {
+                if (cache[actor.name].openRun == true) {   
                     cache[actor.name].openRun = false;                 
                     setState(stopDataPoint, true);
                     return;
@@ -464,8 +527,8 @@ function openClose(actors, openClose, eventObj){
                 cache[actor.name].openRun = true;
             }               
             // Close
-            else{
-                if (cache[actor.name].closeRun == true){   
+            else {
+                if (cache[actor.name].closeRun == true) {   
                     cache[actor.name].closeRun = false;                 
                     setState(stopDataPoint, true);
                     return;
@@ -478,6 +541,7 @@ function openClose(actors, openClose, eventObj){
             }
             // Set datapoint
             setState(dataPoint, Number(desiredPos));
+            log(`openClose -> set ${actors[key]} of ${desiredPos}%`);
         }
     } 
 }
@@ -498,4 +562,4 @@ function createRemap(inMin, inMax, outMin, outMax) {
 
 function onlyUnique(value, index, self) {
     return self.indexOf(value) === index;
-  }
+}
