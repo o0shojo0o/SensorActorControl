@@ -145,11 +145,11 @@ if (openCloseEvents) {
     // Filter actor names of unique
     actorNames = actorNames.filter(onlyUnique);
     // Register event
-     for (const key in actorNames) {  
+    for (const key in actorNames) {  
         on ({id: getDataPoint(actorNames[key], 'pos'),  change: 'ne'}, (obj) => {                                  
             openClose([actorNames[key]], undefined, obj);         
         }); 
-     }           
+    }           
 }
 
 // Run through each event definetion
@@ -159,7 +159,7 @@ for (const key in Events) {
     
     // Run through each events
     for (const eKey in events) {
-        const triggerDp = sensor.id + '.' + events[eKey];    
+        const triggerDp = `${sensor.id}.${events[eKey]}`;
         const actors = Events[key].actors;
         const action = Events[key].action;
         
@@ -247,7 +247,7 @@ for (const key in Events) {
 * @param {string} actorName
 * @param {string} control
 */
-function getDataPoint(actorName, control) {    
+function getDataPoint(actorName, control) {
     let dataPoint;
     const actor = Actors.find(x=>x.name == actorName)    
     // Has an override been defined?
@@ -318,7 +318,7 @@ function getDataPoint(actorName, control) {
 * @param {boolean} onOff
 + @param {boolean} force
 */
-function setOnOff(actors, onOff, force) { 
+function setOnOff(actors, onOff, force) {
     for (const key in actors) {
         const dataPoint = getDataPoint(actors[key], 'on'); 
         if (dataPoint != undefined) {     
@@ -340,7 +340,7 @@ function setOnOff(actors, onOff, force) {
 /**
 * @param {string[]} actors
 */
-function toggle(actors) {   
+function toggle(actors) {
     for (const key in actors) {
         const dataPoint = getDataPoint(actors[key], 'on'); 
         if  (dataPoint != undefined) {
@@ -477,7 +477,8 @@ function dimUpDown(actors, upDown) {
 * @param {boolean} openClose
 * @param {iobJS.ChangedStateObject<any, any>} eventObj
 */
-function openClose(actors, openClose, eventObj) {    
+function openClose(actors, openClose, eventObj) {
+    // Run through each actor
     for (const key in actors) {   
         // Get actor
         const actor = Actors.find(x => x.name == actors[key]);  
@@ -485,8 +486,19 @@ function openClose(actors, openClose, eventObj) {
         // If no cache is defined for the actor name,
         // define cache and register event
         if (!cache[actor.name]) {
-            // Define cache
-            cache[actor.name] = {posMin: 0, posMax: 100, openRun: false, closeRun: false};
+            // Define cache object
+            cache[actor.name] = {};
+            cache[actor.name].posMin = 0;
+            cache[actor.name].posMax = 100;
+            
+            if (openClose != undefined){
+                cache[actor.name].openRun = openClose;
+                cache[actor.name].closeRun = !openClose;
+            }
+            else{
+                cache[actor.name].openRun = false;
+                cache[actor.name].closeRun = false;
+            }            
 
             // Has an override been defined?
             if (actor.posMax) {
@@ -497,7 +509,7 @@ function openClose(actors, openClose, eventObj) {
             }            
         }
 
-
+        // Accept position updates only if they do not come from the JavaScript adapter.
         if (openClose == undefined && !eventObj.state.from.includes('adapter.javascript')) { 
             if (Number(eventObj.state.val) == cache[actor.name].posMin) {
                 cache[actor.name].closeRun = false;  
@@ -505,40 +517,44 @@ function openClose(actors, openClose, eventObj) {
             if (Number(eventObj.state.val) == cache[actor.name].posMax) {
                 cache[actor.name].openRun = false;                  
             }
-            return;
+            continue;
         }       
 
         // Get datapoint
         const dataPoint = getDataPoint(actor.name, 'pos'); 
         const stopDataPoint = getDataPoint(actor.name, 'stop');
-        if  (stopDataPoint != undefined && dataPoint != undefined && openClose != undefined) {  
+        if (stopDataPoint != undefined && dataPoint != undefined && openClose != undefined) {  
             let desiredPos;
             // Open
             if (openClose == true) {
+                // Is he already opening?
                 if (cache[actor.name].openRun == true) {   
                     cache[actor.name].openRun = false;                 
                     setState(stopDataPoint, true);
-                    return;
+                    log(`openClose -> stop ${actors[key]} opening`);
+                    continue;
                 }
-
+                // Set desired position open
                 desiredPos = cache[actor.name].posMax;
- 
+                // Set active direction
                 cache[actor.name].closeRun = false;  
                 cache[actor.name].openRun = true;
             }               
             // Close
             else {
+                // Is he already closing?
                 if (cache[actor.name].closeRun == true) {   
                     cache[actor.name].closeRun = false;                 
                     setState(stopDataPoint, true);
-                    return;
+                    log(`openClose -> stop ${actors[key]} closing`);
+                    continue;
                 }
-
+                // Set desired position close
                 desiredPos = cache[actor.name].posMin;
-               
+                // Set active direction
                 cache[actor.name].closeRun = true;  
                 cache[actor.name].openRun = false;           
-            }
+            }            
             // Set datapoint
             setState(dataPoint, Number(desiredPos));
             log(`openClose -> set ${actors[key]} of ${desiredPos}%`);
