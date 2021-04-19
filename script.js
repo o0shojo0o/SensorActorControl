@@ -1,10 +1,24 @@
-////////// ToDo //////////
-// 
-// - Colortemp handling
-// - Color handling
-// - NightTime handling 
-// - TimeOut (PIR) handling 
-//////////////////////////
+// Define actions
+const Act = {
+    Toggle:     1, 
+    On:         2, 
+    Off:        3,
+    OnOff:      4,
+    OnOffForce: 5,
+    OnForce:    6,
+    OffForce:   7,
+    AutoDim:    8,
+    AutoDimMove:81,
+    DimUp:      9,
+    DimDown:    10,
+    Open:       11,
+    Close:      12,
+    TimeOut:    13,
+    OnTimer:    14,
+    OffTimer:   15,
+    VolUp:      16,
+    VolDown:    17,
+};
 
 // Define actors
 const Actors = [
@@ -20,15 +34,18 @@ const Actors = [
     {name: 'KU.Licht.Deckenleuchte.2', id: 'zigbee.0.588e81fffee3b050', briMin: 1},
     {name: 'KU.Licht.Deckenleuchte.3', id: 'zigbee.0.588e81fffed3eddd', briMin: 1},
     {name: 'KU.Licht.Arbeitsplatte', id: 'zigbee.0.group_3'},
-    {name: 'KU.Licht.Arbeitsplatte.Links',  id: 'zigbee.0.7cb03eaa00b1a4bf'},
+    {name: 'KU.Licht.Arbeitsplatte.Links',  id: 'zigbee.0.842e14fffef598d3'},
     {name: 'KU.Licht.Arbeitsplatte.Rechts', id: 'zigbee.0.84182600000c9c50'},
     // Wohnzimmer
+    {name: 'WZ.Licht.Pflanzenleuchte', id: 'zigbee.0.ec1bbdfffefb20c1'},
     {name: 'WZ.Licht.Fensterbank', id: 'zigbee.0.84182600000c77dd'},
-    {name: 'WZ.Licht.StandLampe', id: 'zigbee.0.588e81fffedb8b1a', briMin: 1},    
+    {name: 'WZ.Licht.StandLampe', id: 'zigbee.0.588e81fffedb8b1a', briMin: 1},   
+    {name: 'WZ.Geraet.Sonos', id: 'sonos.0.root.192_168_0_124'},    
     // Kinderzimmer
     {name: 'KZ.Licht.Betthimmel', id: 'zigbee.0.8418260000101f8c'},
     {name: 'KZ.Licht.Disco', id: 'zigbee.0.841826000010328a'},
     {name: 'KZ.Licht.Decke', id: 'zigbee.0.842e14fffe1f08e7', briMin: 1},   
+    {name: 'KZ.Geraet.Sonos', id: 'sonos.0.root.192_168_0_125'},   
     // Schlafzimmer
     {name: 'SZ.Licht.Bett', id: 'zigbee.0.588e81fffefea724'},
     {name: 'SZ.Blind.Links', id: 'zigbee.0.680ae2fffe974af1', posMax: 90},
@@ -37,6 +54,7 @@ const Actors = [
     {name: 'TR.Licht.GardenPole', id: 'zigbee.0.7cb03eaa00a9572e', briMin: 1},   
     // Büro
     {name: 'BU.Blind', id: 'zigbee.0.680ae2fffeed55f6', posMax: 97},
+    {name: 'BU.Geraet.Sonos', id: 'sonos.0.root.192_168_0_128'},    
 ];
  
 // Define sensors
@@ -51,48 +69,62 @@ const Sensors = [
     // Büro
     {name: 'BU.Sensor.Taster.Free', id: 'zigbee.0.00158d00027c1027'},
     {name: 'BU.Sensor.Taster.OpenClose', id: 'zigbee.0.680ae2fffeaca6fa'},
+    {name: 'BU.SoundContoller', id: 'zigbee.0.ec1bbdfffea28e78'},
     // Kinderzimmer
     {name: 'KZ.Sensor.Taster', id: 'zigbee.0.00158d00027c1ca4'},
     {name: 'KZ.Sensor.Taster.UP', id: 'zigbee.0.5c0272fffe3c2124'},
-    {name: 'KZ.Sensor.Fernbedienung', id: 'zigbee.0.ec1bbdfffea53484'},
+    {name: 'KZ.Sensor.Fernbedienung', id: 'zigbee.0.ec1bbdfffea9bb02'},
+    {name: 'KZ.SoundContoller', id: 'zigbee.0.ec1bbdfffe94a189'},
     // Wohnzimmer
     {name: 'WZ.Sensor.Fernbedienung', id: 'zigbee.0.00178801080cf9f9'},
+    {name: 'WZ.SoundContoller', id: 'zigbee.0.ec1bbdfffe9ebfa2'},
+    // Terrasse
+    {name: 'TR.Sensor.Tuer', id: 'zigbee.0.00158d0002529347'},   
     // Schlafzimmer
     {name: 'SZ.Sensor.Taster.OpenClose', id: 'zigbee.0.680ae2fffe549bb6'},
 ];
  
 // Definde events
 const Events = [
-    // eg.  {sensor: '', events: ['',''], actors: ['',''], action: ''}, current available [ toggle, on, off, onForce, offForce, autoDim, dimUp, dimDown, open, close, timeOut:sec ]
-    // Küche
-    {sensor: 'KU.Sensor.Taster', events: ['right_click'], actors: ['KU.Licht.Arbeitsplatte.Links'], action: 'toggle'},
-    {sensor: 'KU.Sensor.Taster', events: ['left_click'], actors: ['KU.Licht.Arbeitsplatte.Rechts'], action: 'toggle'},
-    {sensor: 'KU.Sensor.Taster', events: ['both_click'], actors: ['KU.Licht.Deckenleuchte'], action: 'toggle'},
-    {sensor: 'KU.Sensor.PIR', events: ['occupancy'], actors: ['KU.Licht.Arbeitsplatte.Links'], action: 'on'},
-    // Kinderzimmer
-    {sensor: 'KZ.Sensor.Taster', events: ['left_click'], actors: ['KZ.Licht.Disco'], action: 'toggle'},
-    {sensor: 'KZ.Sensor.Taster', events: ['right_click'], actors: ['KZ.Licht.Betthimmel'], action: 'toggle'},
-    {sensor: 'KZ.Sensor.Taster.UP', events: ['state'], actors: ['KZ.Licht.Decke'], action: 'toggle'},
-    {sensor: 'KZ.Sensor.Taster.UP', events: ['up_button'], actors: ['KZ.Licht.Decke'], action: 'autoDim'},
-    //{sensor: 'KZ.Sensor.Fernbedienung', events: ['on'], actors: ['KZ.Licht.Decke'], action: 'on'},
-    //{sensor: 'KZ.Sensor.Fernbedienung', events: ['off'], actors: ['KZ.Licht.Decke'], action: 'off'},
-    //{sensor: 'KZ.Sensor.Fernbedienung', events: ['brightness_step_up'], actors: ['WZ.Licht.StandLampe'], action: 'dimUp'},
-    //{sensor: 'KZ.Sensor.Fernbedienung', events: ['brightness_step_down'], actors: ['WZ.Licht.StandLampe'], action: 'dimDown'},
-    // Schlafzimmer
-    {sensor: 'SZ.Sensor.Taster.OpenClose', events: ['cover_open'], actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: 'open'},
-    {sensor: 'SZ.Sensor.Taster.OpenClose', events: ['cover_close'], actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: 'close'},
-    // Büro
-    {sensor: 'BU.Sensor.Taster.OpenClose', events: ['cover_open'], actors: ['BU.Blind'], action: 'open'},
-    {sensor: 'BU.Sensor.Taster.OpenClose', events: ['cover_close'], actors: ['BU.Blind'], action: 'close'},
-    // Wohnzimmer
-    {sensor: 'WZ.Sensor.Fernbedienung', events: ['state'], actors: ['WZ.Licht.StandLampe'], action: 'onOff'},
-    {sensor: 'WZ.Sensor.Fernbedienung', events: ['up_button', 'up_hold'], actors: ['WZ.Licht.StandLampe'], action: 'dimUp'},
-    {sensor: 'WZ.Sensor.Fernbedienung', events: ['down_button', 'down_hold'], actors: ['WZ.Licht.StandLampe'], action: 'dimDown'},
-    // Flur
-    {sensor: 'FL.Sensor.Taster.UP.Vorne', events: ['state'], actors: ['FL.Licht.Decke'], action: 'toggle'},
-    {sensor: 'FL.Sensor.Taster.UP.Vorne', events: ['up_button'], actors: ['FL.Licht.Decke'], action: 'autoDim'},
-    {sensor: 'FL.Sensor.Taster.UP.Hinten', events: ['state'], actors: ['FL.Licht.Decke'], action: 'toggle'},
-    {sensor: 'FL.Sensor.Taster.UP.Hinten', events: ['up_button'], actors: ['FL.Licht.Decke'], action: 'autoDim'},
+    // eg.  {sensor: '', events: ['',''], actors: ['',''], action: ''}, current available [ toggle, on, off, onForce, offForce, autoDim, dimUp, dimDown, open, close, timeOut:sec, onTimer, offTimer ]
+    //// Küche
+    {sensor: 'KU.Sensor.Taster', events: ['right_click'], actors: ['KU.Licht.Arbeitsplatte.Links'], action: Act.Toggle},
+    {sensor: 'KU.Sensor.Taster', events: ['left_click'], actors: ['KU.Licht.Arbeitsplatte.Rechts'], action: Act.Toggle},
+    {sensor: 'KU.Sensor.Taster', events: ['both_click'], actors: ['KU.Licht.Deckenleuchte'], action: Act.Toggle},
+    {sensor: 'KU.Sensor.PIR', events: ['occupancy'], actors: ['KU.Licht.Arbeitsplatte.Links'], action: Act.On},
+    //// Kinderzimmer
+    {sensor: 'KZ.Sensor.Taster', events: ['left_click'], actors: ['KZ.Licht.Disco'], action: Act.Toggle},
+    {sensor: 'KZ.Sensor.Taster', events: ['right_click'], actors: ['KZ.Licht.Betthimmel'], action: Act.Toggle},
+    {sensor: 'KZ.Sensor.Taster.UP', events: ['state'], actors: ['KZ.Licht.Decke'], action: Act.Toggle},
+    {sensor: 'KZ.Sensor.Taster.UP', events: ['up_button'], actors: ['KZ.Licht.Decke'], action: Act.AutoDimMove},
+    {sensor: 'KZ.SoundContoller', events: ['button_play_pause'], actors: ['KZ.Geraet.Sonos'], action: Act.Toggle},
+    {sensor: 'KZ.SoundContoller', events: ['rotate_right'], actors: ['KZ.Geraet.Sonos'], action: Act.VolUp},
+    {sensor: 'KZ.SoundContoller', events: ['rotate_left'], actors: ['KZ.Geraet.Sonos'], action: Act.VolDown},
+    //// Schlafzimmer
+    {sensor: 'SZ.Sensor.Taster.OpenClose', events: ['cover_open'], actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: Act.Open},
+    {sensor: 'SZ.Sensor.Taster.OpenClose', events: ['cover_close'], actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: Act.Close},
+    //// Büro
+    {sensor: 'BU.Sensor.Taster.OpenClose', events: ['cover_open'], actors: ['BU.Blind'], action: Act.Open},
+    {sensor: 'BU.Sensor.Taster.OpenClose', events: ['cover_close'], actors: ['BU.Blind'], action:  Act.Close},
+    {sensor: 'BU.SoundContoller', events: ['button_play_pause'], actors: ['BU.Geraet.Sonos'], action: Act.Toggle},
+    {sensor: 'BU.SoundContoller', events: ['rotate_right'], actors: ['BU.Geraet.Sonos'], action: Act.VolUp},
+    {sensor: 'BU.SoundContoller', events: ['rotate_left'], actors: ['BU.Geraet.Sonos'], action: Act.VolDown},
+    //// Wohnzimmer
+    {events: ['08:00:00'], actors: ['WZ.Licht.Pflanzenleuchte'], action: Act.OnTimer},
+    {events: ['18:00:00'], actors: ['WZ.Licht.Pflanzenleuchte'], action: Act.OffTimer},
+    {sensor: 'WZ.Sensor.Fernbedienung', events: ['state'], actors: ['WZ.Licht.StandLampe'], action:  Act.OnOff},
+    {sensor: 'WZ.Sensor.Fernbedienung', events: ['up_button', 'up_hold'], actors: ['WZ.Licht.StandLampe'], action:  Act.DimUp},
+    {sensor: 'WZ.Sensor.Fernbedienung', events: ['down_button', 'down_hold'], actors: ['WZ.Licht.StandLampe'], action:  Act.DimDown},
+    {sensor: 'WZ.SoundContoller', events: ['button_play_pause'], actors: ['WZ.Geraet.Sonos'], action: Act.Toggle},
+    {sensor: 'WZ.SoundContoller', events: ['rotate_right'], actors: ['WZ.Geraet.Sonos'], action: Act.VolUp},
+    {sensor: 'WZ.SoundContoller', events: ['rotate_left'], actors: ['WZ.Geraet.Sonos'], action: Act.VolDown},
+    //// Flur
+    {sensor: 'FL.Sensor.Taster.UP.Vorne', events: ['state'], actors: ['FL.Licht.Decke'], action: Act.Toggle},
+    {sensor: 'FL.Sensor.Taster.UP.Vorne', events: ['up_button'], actors: ['FL.Licht.Decke'], action: Act.AutoDimMove},
+    {sensor: 'FL.Sensor.Taster.UP.Hinten', events: ['state'], actors: ['FL.Licht.Decke'], action: Act.Toggle},
+    {sensor: 'FL.Sensor.Taster.UP.Hinten', events: ['up_button'], actors: ['FL.Licht.Decke'], action:  Act.AutoDimMove},
+    //// Terrasse
+    //{sensor: 'TR.Sensor.Tuer', events: ['opened'], actors: ['TR.Licht.GardenPole'], action:  Act.OnOff},
 ];
 
 /////////////////////////////////////////////////// Logic ////////////////////////////////////////////////////////////////////
@@ -100,7 +132,7 @@ const cache = [];
 
 // Register events
 // Are on or off events actions defined? 
-const onOffEvents = Events.filter(x => x.action == 'on' || x.action == 'off');
+const onOffEvents = Events.filter(x => x.action == Act.On || x.action == Act.Off || x.action == Act.OnOff);
 if (onOffEvents) {
     // Get actor names array from objekt
     const actors = onOffEvents.map(x => x.actors);
@@ -130,7 +162,7 @@ if (onOffEvents) {
 
 // Register events
 // Are open or close events (blind) actions defined? 
-const openCloseEvents = Events.filter(x => x.action == 'open' || x.action == 'close');
+const openCloseEvents = Events.filter(x => x.action == Act.Open || x.action == Act.Close);
 if (openCloseEvents) {
     // Get actor names array from objekt
     const actors = openCloseEvents.map(x => x.actors);
@@ -158,83 +190,122 @@ for (const key in Events) {
     const events = Events[key].events; 
     
     // Run through each events
-    for (const eKey in events) {
-        const triggerDp = `${sensor.id}.${events[eKey]}`;
+    for (const eKey in events) {       
+        let triggerDp;
+        if (sensor){
+            triggerDp = `${sensor.id}.${events[eKey]}`;
+        }
+
         const actors = Events[key].actors;
         const action = Events[key].action;
-        
+
+        // Time schedule
+        if (action == Act.OnTimer || action == Act.OffTimer){          
+            const timeSplit = events[eKey].split(':');            
+            let scheduleTime = {time:{}};
+            scheduleTime.time.hour  = Number(timeSplit[0]);
+            scheduleTime.time.minute = Number(timeSplit[1]);
+            if (timeSplit[2]){
+                scheduleTime.time.second = Number(timeSplit[2])
+            }            
+
+            on(scheduleTime, function () {
+               setOnOff(actors, (action == Act.OnTimer), true);
+            });
+        }
+
         // Toogle event register
-        if (action == 'toggle') {
+        if (action == Act.Toggle) {
             on ({id: triggerDp, val: true}, (obj) => {
                 toggle(actors);
             });
         }
     
-        // On event register
-        else if (action == 'on') {
+        // On and Off event register
+        else if (action == Act.On || action == Act.Off) {
             on ({id: triggerDp, val: true}, (obj) => {
-                setOnOff(actors, true, false);
-            });
-        } 
-        
-        // Off event register
-        else if (action == 'off') {
-            on ({id: triggerDp, val: true}, (obj) => { 
-                setOnOff(actors, false, false);
+                setOnOff(actors, (action == Act.On), false);
             });
         }
 
-          // On event register
-        else if (action == 'onForce') {
+        // On event register
+        else if (action == Act.OnForce) {
             on ({id: triggerDp, val: true}, (obj) => {
                 setOnOff(actors, true, true);
             });
         } 
         
         // Off event register
-        else if (action == 'offForce') {
+        else if (action == Act.OffForce) {
             on ({id: triggerDp, val: true}, (obj) => { 
                 setOnOff(actors, false, true);
             });
         }
 
         // OnOff event register
-        else if (action == 'onOff') {
+        else if (action == Act.OnOffForce) {
             on ({id: triggerDp}, (obj) => { 
                 setOnOff(actors, obj.state.val, true);
             });
         }
 
+        // OnOff event register
+        else if (action == Act.OnOff) {
+            on ({id: triggerDp}, (obj) => { 
+                setOnOff(actors, obj.state.val, false);
+            });
+        }
+
         // AutoDim event register
-        else if (action == 'autoDim') {
+        else if (action == Act.AutoDimMove) {
+            on ({id: triggerDp}, (obj) => { 
+                autoDimMove(actors, obj);
+            });
+        }
+
+        // AutoDim event register
+        else if (action == Act.AutoDim) {
             on ({id: triggerDp}, (obj) => { 
                 autoDim(actors, obj);
             });
         }
 
         // DimUp event register
-        else if (action == 'dimUp') {
+        else if (action == Act.DimUp) {
             on ({id: triggerDp, val: true}, (obj) => { 
                 dimUpDown(actors, true);
             });
         }
 
         // DimDown event register
-        else if (action == 'dimDown') {
+        else if (action == Act.DimDown) {
             on ({id: triggerDp, val: true}, (obj) => { 
                 dimUpDown(actors, false);
             });
         }
 
+        // VolUp event register
+        else if (action == Act.VolUp) {
+            on ({id: triggerDp, val: true}, (obj) => { 
+                volUpDown(actors, true);
+            });
+        }
+
+        // VolDown event register
+        else if (action == Act.VolDown) {
+            on ({id: triggerDp, val: true}, (obj) => { 
+                volUpDown(actors, false);
+            });
+        }
         // Open (Blind) event register
-        else if (action == 'open') {
+        else if (action == Act.Open) {
             on ({id: triggerDp, val: true}, (obj) => { 
                 openClose(actors, true, undefined);
             });
         }
 
         // Close (Blind) event register
-        else if (action == 'close') {
+        else if (action == Act.Close) {
             on ({id: triggerDp, val: true}, (obj) => { 
                 openClose(actors, false, undefined);
             });
@@ -254,29 +325,27 @@ function getDataPoint(actorName, control) {
     if (actor[control] != undefined) {
         dataPoint =  `${actor.id}.${actor[control]}`;        
     }
-    else{
+    else {
         // Zigbee actor
         if (actor.id.startsWith('zigbee')) {
             if (control == 'on') {
                 dataPoint =  `${actor.id}.state`;
             }
-
             else if (control == 'bri') {
                 dataPoint = `${actor.id}.brightness`;
             }
-
+            else if (control == 'bri_move') {
+                dataPoint = `${actor.id}.brightness_move`;
+            }
             else if (control == 'ct') {
                 dataPoint = `${actor.id}.colortemp`;
             }
-
             else if (control == 'color') {
                 dataPoint = `${actor.id}.color`;
             }
-
             else if (control == 'pos') {
                 dataPoint = `${actor.id}.position`;
             }
-
             else if (control == 'stop') {
                 dataPoint = `${actor.id}.stop`;
             }
@@ -290,16 +359,43 @@ function getDataPoint(actorName, control) {
             else if (control == 'bri') {
                 dataPoint = `${actor.id}.bri`;
             }
-
             else if (control == 'color') {
                 dataPoint = `${actor.id}.seg.0.col.0_HEX`;
             }
         }
 
-         // WLED Actor
+         // Sonoff Actor
         else if (actor.id.startsWith('sonoff')) {
             if (control == 'on') {
                 dataPoint = `${actor.id}.POWER`;
+            }            
+        }
+
+         // Sonos Actor
+        else if (actor.id.startsWith('sonos')) {
+            if (control == 'play') {
+                dataPoint = `${actor.id}.play`;
+            }
+            else if (control == 'pause') {
+                dataPoint = `${actor.id}.pause`;
+            }
+            else if (control == 'stop') {
+                dataPoint = `${actor.id}.stop`;
+            }
+            else if (control == 'next') {
+                dataPoint = `${actor.id}.next`;
+            }
+            else if (control == 'prev') {
+                dataPoint = `${actor.id}.prev`;
+            }
+            else if (control == 'muted') {
+                dataPoint = `${actor.id}.muted`;
+            }
+            else if (control == 'vol') {
+                dataPoint = `${actor.id}.volume`;
+            } 
+            else if (control == 'on') {
+                dataPoint = `${actor.id}.state_simple`;
             }            
         }
     }
@@ -323,12 +419,12 @@ function setOnOff(actors, onOff, force) {
         const dataPoint = getDataPoint(actors[key], 'on'); 
         if (dataPoint != undefined) {     
             if (force == true) {
-                setState(dataPoint, onOff)
+                setState(dataPoint, onOff);
                 log(`setOnOff force -> set ${actors[key]} of ${onOff}`);
             }
             else {                
                 if (cache[actors[key]].state != onOff) {
-                    setState(dataPoint, onOff)
+                    setState(dataPoint, onOff);
                     log(`setOnOff -> set ${actors[key]} of ${onOff}`);
                 }
             }
@@ -350,6 +446,37 @@ function toggle(actors) {
         }
     }
 }
+
+function autoDimMove(actors, obj) {
+    const cacheKey = JSON.stringify(actors);
+    if (!cache[cacheKey]) {
+        cache[cacheKey] = {};
+        cache[cacheKey].upDimming= true;
+    }
+
+    if (obj.state.val == true) {      
+        for (const key in actors) {
+            if (cache[cacheKey].upDimming == true) {
+                // Set state    
+                setState(getDataPoint(actors[key], 'bri_move'), 35);
+                log(`autoDimMove -> set ${actors[key]} dim up`);   
+            } 
+            else{
+                // Set state    
+                setState(getDataPoint(actors[key], 'bri_move'), -35);
+                    log(`autoDimMove -> set ${actors[key]} dim down`);   
+            }         
+        }
+    } else {
+        // On release change dim direction 
+        cache[cacheKey].upDimming = !cache[cacheKey].upDimming;
+        for (const key in actors) {
+            setState(getDataPoint(actors[key], 'bri_move'), 0);
+            log(`autoDimMove -> set ${actors[key]} dim stop`);          
+        }          
+    }
+}
+
 
 /**
 * @param {iobJS.ChangedStateObject<any, any>} obj
@@ -468,6 +595,59 @@ function dimUpDown(actors, upDown) {
             // Set state
             setState(dataPoint, reMap(cache[cacheKey].currentBrightness));
             log(`dimUpDown -> set ${actors[key]} of ${reMap(cache[cacheKey].currentBrightness)}%`);
+        }
+    } 
+}
+
+/**
+* @param {string[]} actors
+* @param {boolean} upDown
+*/
+function volUpDown(actors, upDown) {
+    // Check if the cache is available, if not one will be created 
+    const cacheKey = JSON.stringify(actors);
+    const stepSize = 2;
+    if (!cache[cacheKey]) {
+        cache[cacheKey] = {};
+        cache[cacheKey].currentVolume = Number(getState(getDataPoint(actors[0], 'vol')).val);
+    }
+    // Vol up   
+    if (upDown == true) {
+        cache[cacheKey].currentVolume = cache[cacheKey].currentVolume + stepSize;
+    }
+    // Vol down  
+    else{
+        cache[cacheKey].currentVolume = cache[cacheKey].currentVolume - stepSize;
+    }
+    
+    // Check if the current value exceeds the maximum value
+    if (cache[cacheKey].currentVolume < stepSize) {
+        cache[cacheKey].currentVolume = 0;
+    }
+    // Check if the current value is below the minimum value 
+    else if (cache[cacheKey].currentVolume > 100) {
+        cache[cacheKey].currentVolume = 100;
+    }
+    // Set state
+    for (const key in actors) {
+        const dataPoint = getDataPoint(actors[key], 'vol');   
+        if  (dataPoint != undefined) {    
+            let volMin = 0, volMax = 100;
+            // Get actor
+            const actor = Actors.find(x=>x.name == actors[key]);
+            // Has an override been defined?
+            if (actor.volMin) {
+                volMin = actor.volMin;
+            }
+            // Has an override been defined?
+            if (actor.volMax) {
+                volMax = actor.volMax;
+            }
+            // Create reMap 
+            const reMap = createRemap(0 , 100, volMin, volMax);
+            // Set state
+            setState(dataPoint, reMap(cache[cacheKey].currentVolume));
+            log(`volUpDown -> set ${actors[key]} of ${reMap(cache[cacheKey].currentVolume)}%`);
         }
     } 
 }
