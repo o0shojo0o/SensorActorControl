@@ -1,3 +1,11 @@
+////////// ToDo //////////
+// 
+// - Colortemp handling
+// - Color handling
+// - NightTime handling 
+// - TimeOut (PIR) handling 
+//////////////////////////
+
 // Define actions
 const Act = {
     Toggle:     1, 
@@ -18,6 +26,8 @@ const Act = {
     OffTimer:   15,
     VolUp:      16,
     VolDown:    17,
+    SkipFoward: 18,
+    SkipBack: 19,
 };
 
 // Define actors
@@ -100,6 +110,8 @@ const Events = [
     {sensor: 'KZ.SoundContoller', events: ['button_play_pause'], actors: ['KZ.Geraet.Sonos'], action: Act.Toggle},
     {sensor: 'KZ.SoundContoller', events: ['rotate_right'], actors: ['KZ.Geraet.Sonos'], action: Act.VolUp},
     {sensor: 'KZ.SoundContoller', events: ['rotate_left'], actors: ['KZ.Geraet.Sonos'], action: Act.VolDown},
+    {sensor: 'KZ.SoundContoller', events: ['button_skip_foward'], actors: ['KZ.Geraet.Sonos'], action: Act.SkipFoward},
+    {sensor: 'KZ.SoundContoller', events: ['button_skip_back'], actors: ['KZ.Geraet.Sonos'], action: Act.SkipBack},
     //// Schlafzimmer
     {sensor: 'SZ.Sensor.Taster.OpenClose', events: ['cover_open'], actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: Act.Open},
     {sensor: 'SZ.Sensor.Taster.OpenClose', events: ['cover_close'], actors: ['SZ.Blind.Links', 'SZ.Blind.Rechts'], action: Act.Close},
@@ -109,6 +121,8 @@ const Events = [
     {sensor: 'BU.SoundContoller', events: ['button_play_pause'], actors: ['BU.Geraet.Sonos'], action: Act.Toggle},
     {sensor: 'BU.SoundContoller', events: ['rotate_right'], actors: ['BU.Geraet.Sonos'], action: Act.VolUp},
     {sensor: 'BU.SoundContoller', events: ['rotate_left'], actors: ['BU.Geraet.Sonos'], action: Act.VolDown},
+    {sensor: 'BU.SoundContoller', events: ['button_skip_foward'], actors: ['BU.Geraet.Sonos'], action: Act.SkipFoward},
+    {sensor: 'BU.SoundContoller', events: ['button_skip_back'], actors: ['BU.Geraet.Sonos'], action: Act.SkipBack},
     //// Wohnzimmer
     {events: ['08:00:00'], actors: ['WZ.Licht.Pflanzenleuchte'], action: Act.OnTimer},
     {events: ['18:00:00'], actors: ['WZ.Licht.Pflanzenleuchte'], action: Act.OffTimer},
@@ -118,6 +132,8 @@ const Events = [
     {sensor: 'WZ.SoundContoller', events: ['button_play_pause'], actors: ['WZ.Geraet.Sonos'], action: Act.Toggle},
     {sensor: 'WZ.SoundContoller', events: ['rotate_right'], actors: ['WZ.Geraet.Sonos'], action: Act.VolUp},
     {sensor: 'WZ.SoundContoller', events: ['rotate_left'], actors: ['WZ.Geraet.Sonos'], action: Act.VolDown},
+    {sensor: 'WZ.SoundContoller', events: ['button_skip_foward'], actors: ['WZ.Geraet.Sonos'], action: Act.SkipFoward},    
+    {sensor: 'WZ.SoundContoller', events: ['button_skip_back'], actors: ['WZ.Geraet.Sonos'], action: Act.SkipBack},
     //// Flur
     {sensor: 'FL.Sensor.Taster.UP.Vorne', events: ['state'], actors: ['FL.Licht.Decke'], action: Act.Toggle},
     {sensor: 'FL.Sensor.Taster.UP.Vorne', events: ['up_button'], actors: ['FL.Licht.Decke'], action: Act.AutoDimMove},
@@ -297,6 +313,21 @@ for (const key in Events) {
                 volUpDown(actors, false);
             });
         }
+
+        // VolDown event register
+        else if (action == Act.SkipFoward) {
+            on ({id: triggerDp, val: true}, (obj) => { 
+                triggerSkipForwardButton(actors);
+            });
+        }
+
+        // VolDown event register
+        else if (action == Act.SkipBack) {
+            on ({id: triggerDp, val: true}, (obj) => { 
+                triggerSkipBackButton(actors);
+            });
+        }
+
         // Open (Blind) event register
         else if (action == Act.Open) {
             on ({id: triggerDp, val: true}, (obj) => { 
@@ -382,10 +413,10 @@ function getDataPoint(actorName, control) {
             else if (control == 'stop') {
                 dataPoint = `${actor.id}.stop`;
             }
-            else if (control == 'next') {
+            else if (control == 'skipFoward') {
                 dataPoint = `${actor.id}.next`;
             }
-            else if (control == 'prev') {
+            else if (control == 'skipBack') {
                 dataPoint = `${actor.id}.prev`;
             }
             else if (control == 'muted') {
@@ -432,6 +463,34 @@ function setOnOff(actors, onOff, force) {
     } 
 }
  
+// Trigger next button function
+/**
+* @param {string[]} actors
+*/
+function triggerSkipForwardButton(actors) {
+    for (const key in actors) {
+        const dataPoint = getDataPoint(actors[key], 'skipFoward'); 
+        if (dataPoint != undefined) { 
+            setState(dataPoint, true);
+            log(`triggerNextButton -> trigger ${actors[key]}`);
+        }            
+    }
+}
+
+// Trigger next button function
+/**
+* @param {string[]} actors
+*/
+function triggerSkipBackButton(actors) {
+    for (const key in actors) {
+        const dataPoint = getDataPoint(actors[key], 'skipBack'); 
+        if (dataPoint != undefined) { 
+            setState(dataPoint, true);
+            log(`triggerBackButton -> trigger ${actors[key]}`);
+        }            
+    }
+}
+
 // Toggle function
 /**
 * @param {string[]} actors
@@ -606,7 +665,7 @@ function dimUpDown(actors, upDown) {
 function volUpDown(actors, upDown) {
     // Check if the cache is available, if not one will be created 
     const cacheKey = JSON.stringify(actors);
-    const stepSize = 2;
+    const stepSize = 1;
     if (!cache[cacheKey]) {
         cache[cacheKey] = {};
         cache[cacheKey].currentVolume = Number(getState(getDataPoint(actors[0], 'vol')).val);
